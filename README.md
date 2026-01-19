@@ -1,41 +1,100 @@
-<<<<<<< HEAD
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🍽️ Recipe Tracker App
 
-## Getting Started
+A full-stack recipe tracking and meal planning application that allows users to create, manage, and schedule recipes in one place.
 
-First, run the development server:
+I'm building this app to solve a problem I've been having recently, but also to improve my front-end development skills!
+
+---
+
+## 🚀 Planned Features
+
+- 📖 Create, edit, and delete recipes
+- 🧾 Store ingredients, instructions, and metadata
+- 🗓️ Plan meals by day/week
+- 🗂️ Persist data with a database
+- ⚡ Simple UI with server-side rendering
+
+---
+
+## 🛠️ Tech Stack
+
+**Frontend**
+- React
+- Next.js (App Router)
+- TypeScript
+- CSS / Tailwind (optional)
+
+**Backend**
+- Node.js
+- Next.js Server Components / API Routes
+- Prisma ORM
+
+**Database**
+- SQLite
+---
+
+## ⚙️ Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/DanieruG/recipe-tracker.git
+cd recipe-tracker
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Set up environment variables
+
+Create a `.env` file in the root:
+
+```env
+DATABASE_URL="your_database_url_here"
+```
+
+### 4. Initialize Prisma
+
+```bash
+npx prisma generate
+npx prisma migrate dev
+```
+
+### 5. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000` to view the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📌 Current Status
 
-## Learn More
+- ✅ Create plan page
+- ✅ Add recipe page
+- ✅ Prisma initialized
+- ⏳ Form validation, and posting (current!)
+- ⏳ Meal scheduling logic
+- ⏳ Building an interface to show created meals...
+- ⏳ Authentication (not sure yet?)
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🧩 Planned Improvements
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- User accounts & authentication
+- Weekly calendar view
+- Nutrition/macros tracking (following key features)
+- Recipe search & filters
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🧪 Learning Goals
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-=======
-# Recipe-Tracker
-A simple tool which helps me figure out what I can make for breakfast, lunch and dinner daily.
->>>>>>> d68a321ff26570dc69fb176160d9bd0b2266e930
+This project focuses on:
+- Improving my familiarity with Typescript, React and Next.js
