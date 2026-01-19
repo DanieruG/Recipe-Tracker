@@ -1,0 +1,47 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Recipe {
+  id           Int    @id @default(autoincrement())
+  name         String
+  mealType     String
+  effort       String
+  healthiness  String
+  instructions String
+
+  ingredients RecipeIngredient[]
+  // ALL ingredients used in this recipe
+}
+
+// link recipe table to ingredient table
+
+model Ingredient {
+  id   String @id @default(cuid())
+  name String @unique
+
+  recipes RecipeIngredient[]
+  // ALL recipes that use this ingredient
+}
+
+// link ingredient to recipe table
+
+model RecipeIngredient {
+  recipeId     Int
+  ingredientId String
+
+  recipe     Recipe     @relation(fields: [recipeId], references: [id])
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@id([recipeId, ingredientId])
+}
+
+// join these together
