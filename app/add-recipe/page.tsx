@@ -41,6 +41,13 @@ export default function addRecipe() {
   const { register, control, getValues, handleSubmit } = useForm<formFields>();
   const [coreIngredients, setCoreIng] = useState<Options[]>([]);
 
+  {
+    /* Either filled, or undefined. */
+  }
+  type FieldErrors = Record<string, string[] | undefined>;
+
+  const [errors, setErrors] = useState<FieldErrors>();
+
   useEffect(() => {
     fetch("api/ingredients")
       .then((response) => response.json())
@@ -48,7 +55,14 @@ export default function addRecipe() {
   }, []);
 
   const onSubmit = async (data: formFields) => {
-    await createRecipe(data);
+    const res = await createRecipe(data);
+
+    if (!res.success) {
+      setErrors(res.errors?.fieldErrors);
+      return;
+    }
+
+    setErrors(undefined);
   };
 
   return (
@@ -59,17 +73,18 @@ export default function addRecipe() {
           <div className="grid grid-cols-2 auto-rows-min h-full gap-x-8 gap-y-4">
             <label className="flex flex-col">
               Recipe Name:
-              <Controller
+              <input
+                {...register("recipeName")}
                 name="recipeName"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="text"
-                    className="border border-zinc-700 rounded-sm px-2 h-10"
-                  />
-                )}
+                type="text"
+                className="border border-zinc-700 rounded-sm px-2 h-10"
+                defaultValue={""}
               />
+              {errors?.recipeName && (
+                <div className="text-sm text-red-500">
+                  {errors?.recipeName.map((c) => c)}
+                </div>
+              )}
             </label>
 
             <label className="flex flex-col">
@@ -109,6 +124,11 @@ export default function addRecipe() {
                   />
                 )}
               />
+              {errors?.mealType && (
+                <div className="text-sm text-red-500">
+                  {errors?.mealType.map((c) => c)}
+                </div>
+              )}
             </label>
 
             <label className="flex flex-col">
@@ -126,6 +146,11 @@ export default function addRecipe() {
                   />
                 )}
               />
+              {errors?.effort && (
+                <div className="text-sm text-red-500">
+                  {errors?.effort.map((c) => c)}
+                </div>
+              )}
             </label>
 
             <label className="flex flex-col col-span-2">
@@ -145,6 +170,11 @@ export default function addRecipe() {
                   />
                 )}
               />
+              {errors?.healthiness && (
+                <div className="text-sm text-red-500">
+                  {errors?.healthiness.map((c) => c)}
+                </div>
+              )}
             </label>
 
             <label className="flex flex-col col-span-2">
@@ -155,6 +185,11 @@ export default function addRecipe() {
                 className="border border-zinc-700 rounded-sm px-2 py-2 w-full field-sizing-content"
                 name="instructions"
               ></textarea>
+              {errors?.instructions && (
+                <div className="text-sm text-red-500">
+                  {errors?.instructions.map((c) => c)}
+                </div>
+              )}
             </label>
 
             <button
