@@ -2,18 +2,23 @@
 
 import { prisma } from "@/lib/prisma";
 
-export async function createRecipe(formData: FormData){
-    console.log(formData)
-
-    const ingredients = formData.getAll("coreIngredients")
+export async function createRecipe(formData: {
+  recipeName: string;
+  coreIngredients: string[];
+  mealType: string;
+  effort: string;
+  healthiness: string;
+  instructions: string;
+}){
+    const ingredients = formData.coreIngredients
 
     await prisma.recipe.create({
         data: {
-            name: formData.get("recipeName") as string,
-            mealType: formData.get("mealType") as string,
-            effort: formData.get("effort") as string,
-            healthiness: formData.get("healthiness") as string,
-            instructions: formData.get("instructions") as string,
+            name: formData.recipeName as string,
+            mealType: formData.mealType as string,
+            effort: formData.effort as string,
+            healthiness: formData.healthiness as string,
+            instructions: formData.instructions as string,
 
             ingredients: {
                 create: ingredients.map((ingredient) => ({

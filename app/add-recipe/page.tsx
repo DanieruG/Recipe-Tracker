@@ -4,6 +4,7 @@ import CreatableSelect from "react-select/creatable";
 import { createRecipe } from "../actions/actions";
 import { Form, useForm, Controller } from "react-hook-form";
 import { useEffect, useState } from "react";
+import { register } from "module";
 
 type Options = {
   label: string;
@@ -37,7 +38,7 @@ type formFields = {
 };
 
 export default function addRecipe() {
-  const { control, getValues } = useForm<formFields>();
+  const { register, control, getValues, handleSubmit } = useForm<formFields>();
   const [coreIngredients, setCoreIng] = useState<Options[]>([]);
 
   useEffect(() => {
@@ -46,11 +47,15 @@ export default function addRecipe() {
       .then((data) => setCoreIng(data));
   }, []);
 
+  const onSubmit = async (data: formFields) => {
+    await createRecipe(data);
+  };
+
   return (
     <div className="flex flex-col justify-center items-center min-h-screen">
       <div className="border border-zinc-700 rounded-xl p-6">
         <div className="text-xl font-semibold mb-2">Add a recipe</div>
-        <form action={createRecipe}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <div className="grid grid-cols-2 auto-rows-min h-full gap-x-8 gap-y-4">
             <label className="flex flex-col">
               Recipe Name:
@@ -145,6 +150,7 @@ export default function addRecipe() {
             <label className="flex flex-col col-span-2">
               Instructions:
               <textarea
+                {...register("instructions")}
                 placeholder="Write your recipe here..."
                 className="border border-zinc-700 rounded-sm px-2 py-2 w-full field-sizing-content"
                 name="instructions"
@@ -152,9 +158,8 @@ export default function addRecipe() {
             </label>
 
             <button
-              type="button"
-              onClick={() => console.log(getValues())}
-              className="col-span-2 bg-black text-white rounded px-4 py-2 justify-self-center"
+              type="submit"
+              className="col-span-2 bg-black text-white rounded px-4 py-2 justify-self-center hover:cursor-pointer"
             >
               Submit
             </button>
