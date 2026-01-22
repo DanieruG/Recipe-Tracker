@@ -5,6 +5,7 @@ import { createRecipe } from "../actions/actions";
 import { Form, useForm, Controller } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { register } from "module";
+import z, { success } from "zod";
 
 type Options = {
   label: string;
@@ -37,8 +38,19 @@ type formFields = {
   instructions: string;
 };
 
+const recipeSchema = z.object({
+  recipeName: z.string().min(1, "Field cannot be empty!"),
+  coreIngredients: z.array(z.string()).optional(),
+  mealType: z.string({ error: "Must select a meal type!" }),
+  effort: z.string({ error: "Must select level of effort!" }),
+  healthiness: z.string({ error: "Must select healthiness!" }),
+  instructions: z.string().min(1, "Must write some instructions!"),
+});
+
+type recipe = z.infer<typeof recipeSchema>;
+
 export default function addRecipe() {
-  const { register, control, getValues, handleSubmit } = useForm<formFields>();
+  const { register, control, handleSubmit } = useForm<formFields>();
   const [coreIngredients, setCoreIng] = useState<Options[]>([]);
 
   {
@@ -77,7 +89,7 @@ export default function addRecipe() {
                 {...register("recipeName")}
                 name="recipeName"
                 type="text"
-                className="border border-zinc-700 rounded-sm px-2 h-10"
+                className={`border rounded-sm px-2 h-10 ${errors?.recipeName ? "border-red-700 focus:outline-red-700 focus:outline-1" : "border-zinc-700 focus:outline-1"}`}
                 defaultValue={""}
               />
               {errors?.recipeName && (
@@ -96,7 +108,7 @@ export default function addRecipe() {
                   <CreatableSelect
                     {...field}
                     name="coreIngredients"
-                    className="w-60"
+                    className={"w-60"}
                     options={coreIngredients}
                     value={coreIngredients.filter((c) =>
                       field.value?.includes(c.value),
