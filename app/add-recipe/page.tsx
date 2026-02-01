@@ -6,6 +6,7 @@ import { Form, useForm, Controller } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { register } from "module";
 import z, { success } from "zod";
+import { recipeSchema } from "@/types/form";
 
 type Options = {
   label: string;
@@ -37,17 +38,6 @@ type formFields = {
   healthiness: string;
   instructions: string;
 };
-
-const recipeSchema = z.object({
-  recipeName: z.string().min(1, "Field cannot be empty!"),
-  coreIngredients: z.array(z.string()).optional(),
-  mealType: z.string({ error: "Must select a meal type!" }),
-  effort: z.string({ error: "Must select level of effort!" }),
-  healthiness: z.string({ error: "Must select healthiness!" }),
-  instructions: z.string().min(1, "Must write some instructions!"),
-});
-
-type recipe = z.infer<typeof recipeSchema>;
 
 export default function addRecipe() {
   const { register, control, handleSubmit } = useForm<formFields>();
