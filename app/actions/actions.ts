@@ -1,19 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import z from "zod";
-
-const recipeSchema = z.object({
-    recipeName: z.string().min(1, "Field cannot be empty!"),
-    coreIngredients: z.array(z.string()).optional(),
-    mealType: z.string({error: "Must select a meal type!"}),
-    effort: z.string({error: "Must select level of effort!"}),
-    healthiness: z.string({error: "Must select healthiness!"}),
-    instructions: z.string().min(1, "Must write some instructions!")
-
-})
+import z, { success } from "zod";
+import { recipeSchema, scheduleSchema } from "@/types/form";
 
 type recipe = z.infer<typeof recipeSchema>
+type custom = z.infer<typeof scheduleSchema>
 
 export async function createRecipe(formData: recipe){
 
@@ -49,4 +41,21 @@ export async function createRecipe(formData: recipe){
     })
 
     return {success: true}
+}
+
+export async function createSchedule(formData: custom){
+    // This is the function where we create the logic for creating a plan.
+    // Look up things in the database, such as recipes, to create a schedule.
+    const checkTrue = formData.dinnerEnable || formData.lunchEnable || formData.breakfastEnable
+
+    const result = scheduleSchema.safeParse(formData) // Doesn't return data if parse fails. Only success and a ZodError object
+
+    if (!result.success){
+        return {
+            success: false,
+            checkValid: checkTrue,
+            errors: z.flattenError(result.error)
+        }
+    }
+
 }
