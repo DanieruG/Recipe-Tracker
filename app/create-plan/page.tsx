@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Select from "react-select";
 import { createSchedule } from "../actions/actions";
 import { useForm, Controller } from "react-hook-form";
+import { check } from "zod";
 
 type Options = {
   label: string;
@@ -54,11 +55,18 @@ export default function createPlan() {
   type FieldErrors = Record<string, string[] | undefined>;
 
   const [errors, setErrors] = useState<FieldErrors>();
+  const [checkState, setCheckState] = useState<boolean | undefined>();
   {
     /* Set the state thing to an array of options, ingredientOptions initial value = [] */
   }
 
-  const { register, handleSubmit, control } = useForm<formFields>();
+  const { register, handleSubmit, control } = useForm<formFields>({
+    defaultValues: {
+      breakfastEnable: false,
+      lunchEnable: false,
+      dinnerEnable: false,
+    },
+  });
 
   useEffect(() => {
     fetch("/api/ingredients")
@@ -71,11 +79,11 @@ export default function createPlan() {
 
     if (!res?.success) {
       setErrors(res?.errors.fieldErrors);
+      setCheckState(res?.checkValid);
       console.log(errors);
+      console.log(checkState);
       return;
     }
-
-    console.log("What");
   };
 
   return (
@@ -88,21 +96,25 @@ export default function createPlan() {
               <div className="font-semibold mb-2">Include:</div>
               <ul>
                 <li>
-                  <input className="mr-2" type="checkbox" />
+                  <input
+                    {...register("dinnerEnable")}
+                    className="mr-2"
+                    type="checkbox"
+                  />
                   <label>Dinner</label>
                 </li>
                 <li>
                   {/* This one sets the checkbox value based on the state. */}
                   <input
-                    {...register("dinnerEnable")}
-                    id="dinner"
+                    {...register("lunchEnable")}
+                    id="lunch"
                     className="mr-2"
                     type="checkbox"
-                    defaultChecked={true}
                     onChange={(e) => setLunchTicked(e.target.checked)}
                   />
                   <label>Lunch</label>
                 </li>
+
                 {/* e.target.checked is a boolean which updates the state set above, depending on whether its ticked or not. */}
                 {lunchTicked && (
                   <li>
@@ -136,11 +148,15 @@ export default function createPlan() {
                     className="mr-2"
                     type="checkbox"
                     onChange={(e) => setBreakfastTicked(e.target.checked)}
-                    checked
                   />
                   <label>Breakfast</label>
                 </li>
               </ul>
+              {checkState === false && (
+                <div className="text-sm text-red-500">
+                  You must check at least one of the boxes.
+                </div>
+              )}
             </div>
 
             <div>
@@ -159,6 +175,11 @@ export default function createPlan() {
                   />
                 )}
               />
+              {errors?.shoppingDay && (
+                <div className="text-sm text-red-500">
+                  {errors?.shoppingDay.map((c) => c)}
+                </div>
+              )}
             </div>
 
             <div>
@@ -211,6 +232,11 @@ export default function createPlan() {
                       className="border border-zinc-700 rounded-sm px-2 h-10"
                       type="number"
                     />
+                    {errors?.quickMeals && (
+                      <div className="text-sm text-red-500">
+                        {errors?.quickMeals.map((c) => c)}
+                      </div>
+                    )}
                   </label>
                 </li>
               </ul>
