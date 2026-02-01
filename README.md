@@ -20,9 +20,9 @@ I'm building this app to solve a problem I've been having recently, but also to 
 
 **Frontend**
 - React
-- Next.js (App Router)
+- Next.js
 - TypeScript
-- CSS / Tailwind (optional)
+- TailwindCSS
 
 **Backend**
 - Node.js
