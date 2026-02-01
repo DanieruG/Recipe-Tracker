@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import Select from "react-select";
-import { MultiValue } from "react-select";
+import { createSchedule } from "../actions/actions";
+import { useForm, Controller } from "react-hook-form";
 
-type ingredientOption = {
+type Options = {
   label: string;
   value: string;
 };
@@ -21,27 +22,43 @@ const daysOfWeek = [
 {
   /* Sample ingredients... need to be fetched from the database */
 }
+type formFields = {
+  breakfastEnable: boolean;
+  lunchEnable: boolean;
+  dinnerEnable: boolean;
+  shoppingDay: string;
+  lunchDays: string[];
+  requiredIngredients: string[];
+  cheatMeals: number;
+  quickMeals: number;
+};
+
+{
+  /* The sum of cheatMeals and quickMeals should not be more than 7. It should also not allow decimals. */
+}
 
 export default function createPlan() {
   {
     /* Keeps track of state... such a handy thing!!! One below is for rendering the options... */
   }
-  const [ingredientOptions, setIngredients] = useState([]);
+  const [ingredientOptions, setIngredients] = useState<Options[]>([]);
   {
     /* Form inputs; this can be shortened, but for beginner code it will do fine. */
   }
   const [lunchTicked, setLunchTicked] = useState(false);
   const [dinnerTicked, setDinnerTicked] = useState(false);
   const [breakfastTicked, setBreakfastTicked] = useState(false);
-  const [shoppingDay, setShoppingDay] = useState({});
-  const [cheatMeals, setCheatMeals] = useState(null);
-  const [quickMeals, setQuickMeals] = useState(null);
   const [lunchDays, setLunchDays] = useState({});
   const [selectIngredient, setSelectIngredient] = useState({});
 
+  type FieldErrors = Record<string, string[] | undefined>;
+
+  const [errors, setErrors] = useState<FieldErrors>();
   {
     /* Set the state thing to an array of options, ingredientOptions initial value = [] */
   }
+
+  const { register, handleSubmit, control } = useForm<formFields>();
 
   useEffect(() => {
     fetch("/api/ingredients")
@@ -49,117 +66,162 @@ export default function createPlan() {
       .then((data) => setIngredients(data));
   }, []);
 
+  const onSubmit = async (data: formFields) => {
+    const res = await createSchedule(data);
+
+    if (!res?.success) {
+      setErrors(res?.errors.fieldErrors);
+      console.log(errors);
+      return;
+    }
+
+    console.log("What");
+  };
+
   return (
     <div className="flex justify-center items-center min-h-screen">
       <div className="border border-zinc-700 rounded-xl p-6">
         <div className="text-center text-xl font-bold mb-4">Make your day!</div>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-          <div id="eat_options">
-            <div className="font-semibold mb-2">Include:</div>
-            <ul>
-              <li>
-                <input className="mr-2" type="checkbox" />
-                <label>Dinner</label>
-              </li>
-              <li>
-                {/* This one sets the checkbox value based on the state. */}
-                <input
-                  id="lunch"
-                  className="mr-2"
-                  type="checkbox"
-                  checked={lunchTicked}
-                  onChange={(e) => setLunchTicked(e.target.checked)}
-                />
-                <label>Lunch</label>
-              </li>
-              {/* e.target.checked is a boolean which updates the state set above, depending on whether its ticked or not. */}
-              {lunchTicked && (
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+            <div id="eat_options">
+              <div className="font-semibold mb-2">Include:</div>
+              <ul>
                 <li>
-                  <label
-                    className="flex flex-col flex-wrap w-60"
-                    id="lunch_prompt"
-                  >
-                    On which days?
+                  <input className="mr-2" type="checkbox" />
+                  <label>Dinner</label>
+                </li>
+                <li>
+                  {/* This one sets the checkbox value based on the state. */}
+                  <input
+                    {...register("dinnerEnable")}
+                    id="dinner"
+                    className="mr-2"
+                    type="checkbox"
+                    defaultChecked={true}
+                    onChange={(e) => setLunchTicked(e.target.checked)}
+                  />
+                  <label>Lunch</label>
+                </li>
+                {/* e.target.checked is a boolean which updates the state set above, depending on whether its ticked or not. */}
+                {lunchTicked && (
+                  <li>
+                    <label
+                      className="flex flex-col flex-wrap w-60"
+                      id="lunch_prompt"
+                    >
+                      On which days?
+                      <Controller
+                        name="lunchDays"
+                        control={control}
+                        render={({ field }) => (
+                          <Select
+                            {...field}
+                            options={daysOfWeek}
+                            value={daysOfWeek.filter((c) =>
+                              field.value?.includes(c.value),
+                            )}
+                            onChange={(option) => field.onChange()}
+                            menuPlacement="bottom"
+                            isMulti
+                          />
+                        )}
+                      />
+                    </label>
+                  </li>
+                )}
+                <li>
+                  <input
+                    {...register("breakfastEnable")}
+                    className="mr-2"
+                    type="checkbox"
+                    onChange={(e) => setBreakfastTicked(e.target.checked)}
+                    checked
+                  />
+                  <label>Breakfast</label>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="font-semibold mb-2">
+                Select your shopping day:
+              </div>
+              <Controller
+                name="shoppingDay"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    options={daysOfWeek}
+                    value={daysOfWeek.find((c) => c.value === field.value)}
+                    onChange={(option) => field.onChange(option?.value)}
+                  />
+                )}
+              />
+            </div>
+
+            <div>
+              <label className="flex flex-col flex-wrap w-60">
+                <span className="font-semibold mb-2">
+                  Must-have ingredients (optional):
+                </span>
+
+                {/* Defining the type of choices here was key to getting it to function correctly. */}
+
+                <Controller
+                  name="requiredIngredients"
+                  control={control}
+                  render={({ field }) => (
                     <Select
-                      options={daysOfWeek}
+                      {...field}
+                      options={ingredientOptions}
+                      value={ingredientOptions.filter((c) =>
+                        field.value?.includes(c.value),
+                      )}
+                      onChange={(option) => {
+                        field.onChange(option.map((c) => c.value));
+                      }}
                       isMulti
-                      menuPlacement="bottom"
-                      onChange={(choice) => setLunchDays(choice.values())}
+                    />
+                  )}
+                />
+              </label>
+            </div>
+
+            <div>
+              <div className="font-semibold">Finer tweaks (optional):</div>
+              <ul>
+                <li>
+                  <label className="flex flex-col gap-1 mb-6">
+                    Cheat meals (min per week):
+                    <input
+                      {...register("cheatMeals")}
+                      className="border border-zinc-700 rounded-sm px-2 h-10"
+                      type="number"
                     />
                   </label>
                 </li>
-              )}
-              <li>
-                <input className="mr-2" type="checkbox" />
-                <label>Breakfast</label>
-              </li>
-            </ul>
+
+                <li>
+                  <label className="flex flex-col gap-1">
+                    Quick meals (min per week):
+                    <input
+                      {...register("quickMeals")}
+                      className="border border-zinc-700 rounded-sm px-2 h-10"
+                      type="number"
+                    />
+                  </label>
+                </li>
+              </ul>
+            </div>
           </div>
-
-          <div>
-            <div className="font-semibold mb-2">Select your shopping day:</div>
-            <Select
-              options={daysOfWeek}
-              onChange={(choice) => {
-                if (choice) {
-                  setShoppingDay(choice.value);
-                  console.log(choice.value);
-                }
-              }}
-              required
-            />
+          <div className="flex justify-center mt-4">
+            <button className="bg-black text-white rounded px-4 py-2 justify-self-center hover:cursor-pointer">
+              Create
+            </button>
           </div>
-
-          <div>
-            <label className="flex flex-col flex-wrap w-60">
-              <span className="font-semibold mb-2">Must-have ingredients:</span>
-
-              {/* Defining the type of choices here was key to getting it to function correctly. */}
-
-              <Select
-                options={ingredientOptions}
-                onChange={(choices: MultiValue<ingredientOption>) => {
-                  if (choices) {
-                    const valuesOnly = choices.map((option) => option.value);
-                    setSelectIngredient(valuesOnly);
-                    console.log(valuesOnly);
-                  }
-                }}
-                isMulti
-              />
-            </label>
-          </div>
-
-          <div>
-            <div className="font-semibold">Finer tweaks (optional):</div>
-            <ul>
-              <li>
-                <label className="flex flex-col gap-1 mb-6">
-                  Cheat meals (min per week):
-                  <input
-                    className="border border-zinc-700 rounded-sm px-2"
-                    type="number"
-                  />
-                </label>
-              </li>
-
-              <li>
-                <label className="flex flex-col gap-1">
-                  Quick meals (min per week):
-                  <input
-                    className="border border-zinc-700 rounded-sm px-2"
-                    type="number"
-                  />
-                </label>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div className="flex justify-center mt-4">
-          <button className="bg-black text-white px-4 py-2 rounded">
-            Create
-          </button>
-        </div>
+        </form>
       </div>
     </div>
   );
