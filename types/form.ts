@@ -1,4 +1,5 @@
 import z from "zod";
+{/* Contains every field in this app */}
 
 export const scheduleSchema = z.object({
   breakfastEnable: z.boolean(),
