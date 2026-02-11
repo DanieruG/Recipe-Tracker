@@ -56,6 +56,42 @@ export async function createSchedule(formData: custom){
             checkValid: checkTrue,
             errors: z.flattenError(result.error)
         }
+    } else {
+        //   First; collect recipes   that are one of the  selected.
+        // Prisma results return an array of objects.
+        // Collect  which options are enabled
+        const options = [formData.breakfastEnable &&  "Breakfast",
+            formData.dinnerEnable && "Dinner" , 
+            formData.lunchEnable && "Lunch"
+        ].filter(Boolean) as string[]
+
+        //  Factors: meal type, and ingredients.
+        const recipes =  await prisma.recipe.findMany({
+            where: {
+                mealType: {in: options},
+
+                ...((formData.requiredIngredients)?.length && {ingredients: {
+                    some: {
+                        ingredient: {
+                            name: {in: formData.requiredIngredients}
+                    }
+                }
+
+                
+            }})
+
+                
+        }})
+
+        return {
+            success: true,
+            validRecipes: recipes
+        }
     }
+
+    // If parsed successfully... then create a schedule.
+    // All schedule consist of 7 days; lunch only appears on select days.
+    // Must start from the shopping day.
+    // But first, collect all recipes matching plan criteria.
 
 }
