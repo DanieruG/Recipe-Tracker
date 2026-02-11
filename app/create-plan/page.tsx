@@ -78,22 +78,23 @@ export default function createPlan() {
     const res = await createSchedule(data);
 
     if (!res?.success) {
-      setErrors(res?.errors.fieldErrors);
+      setErrors(res?.errors?.fieldErrors);
       setCheckState(res?.checkValid);
       console.log(errors);
-      console.log(checkState);
       return;
+    } else {
+      console.log(res.validRecipes);
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen">
-      <div className="border border-zinc-700 rounded-xl p-6">
-        <div className="text-center text-xl font-bold mb-4">Make your day!</div>
+    <div className="flex flex-col justify-center items-center min-h-screen">
+      <div className="border border-gray-300 rounded-xl shadow-lg p-6">
+        <div className="text-xl font-semibold mb-2">Create a schedule.</div>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="grid grid-cols-2 gap-x-8 gap-y-4">
             <div id="eat_options">
-              <div className="font-semibold mb-2">Include:</div>
+              <div className="mb-2">Include:</div>
               <ul>
                 <li>
                   <input
@@ -218,7 +219,7 @@ export default function createPlan() {
                     Cheat meals (min per week):
                     <input
                       {...register("cheatMeals")}
-                      className="border border-zinc-700 rounded-sm px-2 h-10"
+                      className="border border-zinc-300 rounded-sm px-2 h-10"
                       type="number"
                     />
                   </label>
@@ -229,7 +230,7 @@ export default function createPlan() {
                     Quick meals (min per week):
                     <input
                       {...register("quickMeals")}
-                      className="border border-zinc-700 rounded-sm px-2 h-10"
+                      className="border border-zinc-300 rounded-sm px-2 h-10"
                       type="number"
                     />
                     {errors?.quickMeals && (
