@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { register } from "module";
 import z, { success } from "zod";
 import { recipeSchema } from "@/types/form";
+import Error from "@/components/Error";
 
 type Options = {
   label: string;
@@ -69,7 +70,7 @@ export default function addRecipe() {
 
   return (
     <div className="flex flex-col justify-center items-center min-h-screen">
-      <div className="border border-zinc-700 rounded-xl p-6">
+      <div className="border border-zinc-300 shadow-lg rounded-xl p-6">
         <div className="text-xl font-semibold mb-2">Add a recipe</div>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="grid grid-cols-2 auto-rows-min h-full gap-x-8 gap-y-4">
@@ -79,7 +80,7 @@ export default function addRecipe() {
                 {...register("recipeName")}
                 name="recipeName"
                 type="text"
-                className={`border rounded-sm px-2 h-10 ${errors?.recipeName ? "border-red-700 focus:outline-red-700 focus:outline-1" : "border-zinc-700 focus:outline-1"}`}
+                className={`border rounded-sm px-2 h-10 ${errors?.recipeName ? "border-red-700 focus:outline-red-700 focus:outline-1" : "border-zinc-300 focus:outline-1"}`}
                 defaultValue={""}
               />
               {errors?.recipeName && (
@@ -126,11 +127,7 @@ export default function addRecipe() {
                   />
                 )}
               />
-              {errors?.mealType && (
-                <div className="text-sm text-red-500">
-                  {errors?.mealType.map((c) => c)}
-                </div>
-              )}
+              {errors?.mealType && <Error msg={errors?.mealType[0]}></Error>}
             </label>
 
             <label className="flex flex-col">
@@ -184,7 +181,7 @@ export default function addRecipe() {
               <textarea
                 {...register("instructions")}
                 placeholder="Write your recipe here..."
-                className="border border-zinc-700 rounded-sm px-2 py-2 w-full field-sizing-content"
+                className="border border-zinc-300 rounded-sm px-2 py-2 w-full field-sizing-content"
                 name="instructions"
               ></textarea>
               {errors?.instructions && (
