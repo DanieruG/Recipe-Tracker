@@ -1,8 +1,23 @@
 "use client";
 import { useState } from "react";
 
+type recipe = {
+  id: number;
+  name: string;
+  mealType: string;
+  effort: string;
+  healthiness: string;
+  instructions: string;
+}[];
+
 export default function MealCard() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isItem, setItemId] = useState<Record<string, boolean>>({});
+
+  const schedule = localStorage.getItem("recipes");
+
+  const recipes: recipe = schedule ? JSON.parse(schedule) : [];
+  // If schedule; parse it, else, log empty string.
 
   return (
     <div className="flex flex-col gap-y-4 justify-center items-center min-h-screen p-8">
@@ -15,34 +30,30 @@ export default function MealCard() {
       </div>
 
       <div className="border border-gray-300 rounded-sm overflow-hidden w-96 bg-white shadow-lg">
-        <button
-          className="w-full px-10 py-2 pr-12 text-left"
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          {/* Will need breakfast, lunch and dinner subsets. */}
-          <div className="flex flex-col">
-            <span className="text-xl text-gray-400">Monday</span>
+        {/* Will need breakfast, lunch and dinner subsets. */}
+        <div className="flex flex-col px-10 py-2 text-left">
+          <span className="text-xl text-gray-400">Monday</span>
+        </div>
+        <button className="w-full text-left" onClick={() => setIsOpen(!isOpen)}>
+          <div className="border-t border-gray-300 px-10 py-2">
+            <div className="text-sm font-semibold">Breakfast</div>
           </div>
         </button>
-        <div className="border-t border-gray-300 px-10 py-2">
-          <div className="text-sm font-semibold">Breakfast</div>
-        </div>
-        <div className="border-t border-gray-300 px-10 py-2">
-          <div className="text-sm font-semibold">Lunch</div>
-        </div>
 
         {isOpen && (
           <div className="border-t border-gray-300 px-10 py-2">
-            <div className="text-sm font-semibold">Ingredients</div>
-            {/* Need some sort of API to call and fetch all of these. Needs */}
-            <ul className="text-sm text-gray-600">
-              <li>Chicken</li>
-              <li>Pasta</li>
-            </ul>
-            <div className="text-sm font-semibold">Instructions</div>
-            <div className="text-sm font-semibold">Tags</div>
+            {recipes.map((c) => (
+              <>
+                <div className="text-sm font-semibold">Instructions</div>
+                <p>{c.instructions}</p>
+              </>
+            ))}
           </div>
         )}
+
+        <div className="border-t border-gray-300 px-10 py-2">
+          <div className="text-sm font-semibold">Lunch</div>
+        </div>
       </div>
 
       {/* Footer with quick stats */}
