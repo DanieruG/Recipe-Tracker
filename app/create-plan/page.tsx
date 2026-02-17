@@ -4,6 +4,7 @@ import Select from "react-select";
 import { createSchedule } from "../actions/actions";
 import { useForm, Controller } from "react-hook-form";
 import { check } from "zod";
+import { useRouter } from "next/navigation";
 
 type Options = {
   label: string;
@@ -68,6 +69,8 @@ export default function createPlan() {
     },
   });
 
+  const router = useRouter();
+
   useEffect(() => {
     fetch("/api/ingredients")
       .then((response) => response.json())
@@ -83,7 +86,8 @@ export default function createPlan() {
       console.log(errors);
       return;
     } else {
-      console.log(res.validRecipes);
+      localStorage.setItem("recipes", JSON.stringify(res.validRecipes));
+      router.push("/view-schedule");
     }
   };
 
