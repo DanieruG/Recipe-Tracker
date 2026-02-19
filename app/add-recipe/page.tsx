@@ -41,8 +41,9 @@ type formFields = {
 };
 
 export default function addRecipe() {
-  const { register, control, handleSubmit } = useForm<formFields>();
+  const { register, control, handleSubmit, reset } = useForm<formFields>();
   const [coreIngredients, setCoreIng] = useState<Options[]>([]);
+  const [success, setSuccess] = useState(false);
 
   {
     /* Either filled, or undefined. */
@@ -66,6 +67,9 @@ export default function addRecipe() {
     }
 
     setErrors(undefined);
+    reset();
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 3000);
   };
 
   return (
@@ -106,6 +110,14 @@ export default function addRecipe() {
                     )}
                     onChange={(option) => {
                       field.onChange(option.map((c) => c.value));
+                    }}
+                    onCreateOption={(inputValue) => {
+                      const newOption = {
+                        value: inputValue,
+                        label: inputValue,
+                      };
+                      setCoreIng((prev) => [...prev, newOption]);
+                      field.onChange([...(field.value || []), inputValue]);
                     }}
                     isMulti
                   />
@@ -181,7 +193,7 @@ export default function addRecipe() {
               <textarea
                 {...register("instructions")}
                 placeholder="Write your recipe here..."
-                className="border border-zinc-300 rounded-sm px-2 py-2 w-full field-sizing-content"
+                className="border border-zinc-300 rounded-sm px-2 py-2 w-full field-sizing-content whitespace-pre-wrap"
                 name="instructions"
               ></textarea>
               {errors?.instructions && (
@@ -193,10 +205,15 @@ export default function addRecipe() {
 
             <button
               type="submit"
-              className="col-span-2 bg-black text-white rounded px-4 py-2 justify-self-center hover:cursor-pointer"
+              className="col-span-2 bg-black font-semibold text-white rounded-md px-4 py-2 justify-self-center hover:cursor-pointer hover:bg-zinc-600 transition duration-200"
             >
               Submit
             </button>
+            {success && (
+              <div className="col-span-2 text-center text-green-400">
+                Recipe added successfully!
+              </div>
+            )}
           </div>
         </form>
       </div>
