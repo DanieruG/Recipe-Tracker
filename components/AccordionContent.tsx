@@ -31,7 +31,7 @@ export default function AccordionContent({
         <span className="text-xl text-gray-400">{dayOfWeek}</span>
       </div>
       <button
-        className="w-full text-left"
+        className="w-full text-left hover:bg-gray-100 hover:cursor-pointer"
         onClick={() =>
           setIsOpen((prev) => ({ ...prev, breakfast: !prev.breakfast }))
         }
@@ -54,7 +54,7 @@ export default function AccordionContent({
       </div>
 
       <button
-        className="w-full text-left"
+        className="w-full text-left hover:bg-gray-100 hover:cursor-pointer"
         onClick={() => setIsOpen((prev) => ({ ...prev, lunch: !prev.lunch }))}
       >
         <div className="border-t border-gray-300 px-10 py-2">
@@ -64,15 +64,17 @@ export default function AccordionContent({
         </div>
       </button>
 
-      {isOpen.lunch && (
+      <div
+        className={`overflow-hidden transition-all duration-700 ease-in-out ${isOpen.lunch ? "max-h-96" : "max-h-0"}`}
+      >
         <div className="border-t border-gray-300 px-10 py-2">
           <div className="text-sm font-semibold">Instructions</div>
           {recipe.lunch?.instructions}
         </div>
-      )}
+      </div>
 
       <button
-        className="w-full text-left"
+        className="w-full text-left hover:bg-gray-100 hover:cursor-pointer"
         onClick={() => setIsOpen((prev) => ({ ...prev, dinner: !prev.dinner }))}
       >
         <div className="border-t border-gray-300 px-10 py-2">
@@ -82,12 +84,14 @@ export default function AccordionContent({
         </div>
       </button>
 
-      {isOpen.dinner && (
+      <div
+        className={`overflow-hidden transition-all duration-700 ease-in-out ${isOpen.dinner ? "max-h-96" : "max-h-0"}`}
+      >
         <div className="border-t border-gray-300 px-10 py-2">
           <div className="text-sm font-semibold">Instructions</div>
           {recipe.dinner?.instructions}
         </div>
-      )}
+      </div>
     </div>
   );
 }
