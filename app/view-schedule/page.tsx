@@ -45,19 +45,50 @@ export default function MealCard() {
         ))}
       </div>
 
-      {/* Footer with quick stats */}
-      <div className="flex gap-4 mt-8">
-        <div className="bg-white rounded-lg px-6 py-4 shadow-md border border-gray-200">
-          <div className="text-2xl font-bold text-orange-500">7</div>
-          <div className="text-xs text-gray-600">Days Planned</div>
-        </div>
-        <div className="bg-white rounded-lg px-6 py-4 shadow-md border border-gray-200">
-          <div className="text-2xl font-bold text-amber-500">21</div>
-          <div className="text-xs text-gray-600">Unique Meals This Week</div>
-        </div>
-        <div className="bg-white rounded-lg px-6 py-4 shadow-md border border-gray-200">
-          <div className="text-2xl font-bold text-yellow-600">45</div>
-          <div className="text-xs text-gray-600">Ingredients</div>
+      {/* Shopping List for the week */}
+      <div className="text-center mb-6 mt-10">
+        <h1 className="text-4xl font-bold text-gray-800 mb-2">Shopping List</h1>
+        <p className="text-gray-600">
+          Here's your shopping list for this week:
+        </p>
+      </div>
+
+      <div className="border border-gray-300 rounded-sm overflow-hidden w-140 bg-white shadow-lg">
+        <div className="flex flex-col px-10 py-2 text-left">
+          {/* Map through the recipes, and get the ingredients for each recipe. */}
+          <div className="border border-gray-300 rounded-md overflow-hidden mt-4 shadow-lg">
+            <table className="table-auto w-full">
+              <thead>
+                <tr>
+                  <th className="text-left p-2 px-2 pr-8 border border-gray-300">
+                    Ingredient
+                  </th>
+                  <th className="text-left px-2 pr-8 border border-gray-300">
+                    Estimated price
+                  </th>
+                  <th className="text-left px-2 pr-8 border border-gray-300">
+                    Modify details
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="border border-gray-300 p-2 px-2">
+                    Chicken Thighs
+                  </td>
+                  <td className="border border-gray-300 px-2">£2.19</td>
+                  <td className="border border-gray-300 px-2">
+                    <button className="text-blue-500 hover:underline">
+                      Edit
+                    </button>
+                    <button className="text-red-500 hover:underline ml-4">
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
