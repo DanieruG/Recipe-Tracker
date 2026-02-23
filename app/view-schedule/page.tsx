@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Recipe } from "@/generated/prisma/client/client";
+import { Recipe } from "@/types/recipe";
 import AccordionContent from "@/components/AccordionContent";
 
 export default function MealCard() {
@@ -24,6 +24,13 @@ export default function MealCard() {
   const recipes: dayPlan[] = schedule ? JSON.parse(schedule) : [];
   // If schedule; parse it, else, log empty string.
 
+  const ingredients = recipes.map((dayPlan) => {
+    return (
+      dayPlan.meals.dinner?.ingredients.map((i) => i.ingredient.name) || []
+    );
+  });
+  {/* Gets the dinner ingredients list for 7 days. But duplicates need removing. */}
+
   return (
     <div className="flex flex-col gap-y-4 justify-center items-center min-h-screen p-8">
       {/* Header */}
@@ -35,7 +42,7 @@ export default function MealCard() {
       </div>
 
       {/* Accordion for each day */}
-      <div className="grid grid-cols-4 grid-rows-2 gap-6 items-start justify-center">
+      <div className="grid grid-cols-4 gap-6 items-start justify-center">
         {recipes.map((dayPlan, index) => (
           <AccordionContent
             key={index}
@@ -86,6 +93,22 @@ export default function MealCard() {
                     </button>
                   </td>
                 </tr>
+                {ingredients[0].map((ingredient, index) => (
+                  <tr key={index}>
+                    <td className="border border-gray-300 p-2 px-2">
+                      {ingredient}
+                    </td>
+                    <td className="border border-gray-300 px-2">£0.00</td>
+                    <td className="border border-gray-300 px-2">
+                      <button className="text-blue-500 hover:underline">
+                        Edit
+                      </button>
+                      <button className="text-red-500 hover:underline ml-4">
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
