@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
-{/* Function name MUST be GET */}
+{/* Function name MUST be GET */ }
 
 export async function GET() {
   const ingredientDB = await prisma.ingredient.findMany();
@@ -10,5 +11,5 @@ export async function GET() {
     label: ingredient.name,
   }));
 
-  return Response.json(ingredientOptions);
+  return NextResponse.json(ingredientOptions);
 }
