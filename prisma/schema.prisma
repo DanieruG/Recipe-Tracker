@@ -20,6 +20,12 @@ model Recipe {
 
   ingredients RecipeIngredient[]
   // ALL ingredients used in this recipe
+
+  // User-visible fields
+  rating        Int? // integer rating (e.g. 1-5)
+  tags          Tag[] // many-to-many relation to Tag model
+  lastMade      DateTime @default(now())
+  timesIncluded Int      @default(0)
 }
 
 // link recipe table to ingredient table
@@ -28,8 +34,16 @@ model Ingredient {
   id   String @id @default(cuid())
   name String @unique
 
-  recipes RecipeIngredient[]
+  recipes       RecipeIngredient[]
+  shoppingLists ShoppingListItem[]
   // ALL recipes that use this ingredient
+}
+
+model Tag {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  recipes Recipe[]
 }
 
 // link ingredient to recipe table
@@ -45,3 +59,27 @@ model RecipeIngredient {
 }
 
 // join these together
+
+model Schedule {
+  id        Int      @id @default(autoincrement())
+  weekPlan  Json
+  createdAt DateTime @default(now())
+}
+
+model ShoppingList {
+  id        Int                @id @default(autoincrement())
+  createdAt DateTime           @default(now())
+  status    Boolean            @default(false) // false = active, true = completed
+  items     ShoppingListItem[]
+}
+
+model ShoppingListItem {
+  shoppingListId Int
+  ingredientId   String
+  checked        Boolean @default(false)
+
+  shoppingList ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient   @relation(fields: [ingredientId], references: [id])
+
+  @@id([shoppingListId, ingredientId])
+}
