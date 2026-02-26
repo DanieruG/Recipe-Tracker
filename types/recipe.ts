@@ -10,3 +10,17 @@ export type Recipe = Prisma.RecipeGetPayload<{
         }
     };
 }>;
+
+export type RecipeFromDb = {
+    id: number
+    name: string
+    mealType: string
+    effort: string
+    healthiness: string
+    instructions: string
+    rating?: number | undefined
+    tags?: string[]
+    lastMade?: Date | null
+    timesIncluded?: number
+    ingredients?: { ingredient: { id: string; name: string } }[]
+}
