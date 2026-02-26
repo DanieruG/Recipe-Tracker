@@ -7,6 +7,33 @@ import { recipeSchema, scheduleSchema } from "@/types/form";
 type recipe = z.infer<typeof recipeSchema>
 type custom = z.infer<typeof scheduleSchema>
 
+// Types for the weekly plan that will be stored as JSON in the DB
+type RecipeFromDb = {
+    id: number
+    name: string
+    mealType: string
+    effort: string
+    healthiness: string
+    instructions: string
+    rating?: number | null
+    tags?: any[]
+    lastMade?: Date | null
+    timesIncluded?: number
+    ingredients?: { ingredient: { id: string; name: string } }[]
+}
+type mealPlan = {
+    breakfast?: RecipeFromDb | null,
+    lunch?: RecipeFromDb | null,
+    dinner?: RecipeFromDb | null
+
+}
+type DayPlan = {
+    day: string
+    meals: mealPlan
+}
+
+type WeekPlan = DayPlan[]
+
 // This is a Fisher-Yates shuffle.
 function shuffler(array: any[]) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -43,6 +70,14 @@ export async function createRecipe(formData: recipe) {
             effort: formData.effort as string,
             healthiness: formData.healthiness as string,
             instructions: formData.instructions as string,
+            rating: formData.rating as number,
+
+            tags: {
+                connectOrCreate: formData.tags?.map((t) => ({
+                    where: { name: t },
+                    create: { name: t }
+                }))
+            },
 
             ingredients: {
                 create: ingredients?.map((ingredient) => ({
@@ -120,19 +155,11 @@ export async function createSchedule(formData: custom) {
     const dinner_options = shuffler(recipes.filter((c) => c.mealType == "Dinner"))
     // First, filter the recipes. Then, distribute across 7 days.
     // Need a mealPlan type, which will be made up of  breakfast, lunch and dinner.
-    type mealPlan = {
-        breakfast?: recipe,
-        lunch?: recipe,
-        dinner?: recipe
-    }
+
 
     // This will store the day, and the meals for that day.
-    type dayPlan = {
-        day: string,
-        meals: mealPlan
-    }
 
-    const weeklyPlan: dayPlan[] = []
+    const weeklyPlan: WeekPlan = []
     // Now, construct the weekly plan based on the available recipes.
 
     for (let i = 0; i < 7; i++) {
@@ -155,9 +182,35 @@ export async function createSchedule(formData: custom) {
         })
     }
 
+    // Persist the constructed weekly plan to the database as JSON
+    const created = await prisma.schedule.create({
+        data: {
+            weekPlan: weeklyPlan
+        }
+    })
+
+    // Create shopping list from all ingredients in the recipes
+    const ingredientIds = new Set<string>();
+    recipes.forEach((recipe) => {
+        recipe.ingredients.forEach((recipeIngredient) => {
+            ingredientIds.add(recipeIngredient.ingredient.id);
+        });
+    });
+
+    await prisma.shoppingList.create({
+        data: {
+            items: {
+                create: Array.from(ingredientIds).map((ingredientId) => ({
+                    ingredientId
+                }))
+            }
+        }
+    });
+
     return {
         success: true,
-        validRecipes: weeklyPlan
+        validRecipes: weeklyPlan,
+        scheduleId: created.id
     }
 }
 
