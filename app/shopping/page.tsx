@@ -1,6 +1,9 @@
 "use client";
 import NavBar from "@/components/NavBar";
 import { useState, useEffect } from "react";
+import { Modal } from "@/components/Modal";
+import AddRecipe from "@/components/AddRecipe";
+import ConfirmModal from "@/components/ConfirmModal";
 
 type ShoppingListItem = {
   shoppingListId: number;
@@ -24,19 +27,28 @@ export default function Shopping() {
   const [expandedList, setExpandedList] = useState<number | null>(null);
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddRecipe, setShowAddRecipe] = useState(false);
+  const [newItemByList, setNewItemByList] = useState<Record<number, string>>(
+    {},
+  );
+  const [actionLoading, setActionLoading] = useState("");
+  const [pendingDeleteListId, setPendingDeleteListId] = useState<number | null>(
+    null,
+  );
+
+  const fetchLists = async () => {
+    try {
+      const response = await fetch("/api/shopping-lists");
+      const data = await response.json();
+      setShoppingLists(data);
+    } catch (error) {
+      console.error("Failed to fetch shopping lists:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchLists = async () => {
-      try {
-        const response = await fetch("/api/shopping-lists");
-        const data = await response.json();
-        setShoppingLists(data);
-      } catch (error) {
-        console.error("Failed to fetch shopping lists:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchLists();
   }, []);
 
@@ -53,17 +65,27 @@ export default function Shopping() {
       });
 
       if (response.ok) {
+        const result = await response.json();
         setShoppingLists(
           shoppingLists.map((list) =>
             list.id === shoppingListId
-              ? {
-                  ...list,
-                  items: list.items.map((item) =>
+              ? (() => {
+                  const updatedItems = list.items.map((item) =>
                     item.ingredientId === ingredientId
                       ? { ...item, checked }
                       : item,
-                  ),
-                }
+                  );
+
+                  return {
+                    ...list,
+                    items: updatedItems,
+                    status:
+                      typeof result?.status === "boolean"
+                        ? result.status
+                        : updatedItems.length > 0 &&
+                          updatedItems.every((item) => item.checked),
+                  };
+                })()
               : list,
           ),
         );
@@ -81,9 +103,109 @@ export default function Shopping() {
     });
   };
 
+  const handleAddItem = async (shoppingListId: number) => {
+    const ingredientName = (newItemByList[shoppingListId] ?? "").trim();
+    if (!ingredientName) return;
+
+    setActionLoading(`add-${shoppingListId}`);
+    try {
+      const response = await fetch("/api/shopping-lists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shoppingListId, ingredientName }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add item");
+      }
+
+      setNewItemByList((prev) => ({ ...prev, [shoppingListId]: "" }));
+      await fetchLists();
+    } catch (error) {
+      console.error("Failed to add shopping list item:", error);
+    } finally {
+      setActionLoading("");
+    }
+  };
+
+  const handleDeleteItem = async (
+    shoppingListId: number,
+    ingredientId: string,
+  ) => {
+    setActionLoading(`delete-item-${shoppingListId}-${ingredientId}`);
+    try {
+      const response = await fetch("/api/shopping-lists", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shoppingListId, ingredientId }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete item");
+      }
+
+      await fetchLists();
+    } catch (error) {
+      console.error("Failed to delete shopping list item:", error);
+    } finally {
+      setActionLoading("");
+    }
+  };
+
+  const handleDeleteList = async (shoppingListId: number) => {
+    setActionLoading(`delete-list-${shoppingListId}`);
+    try {
+      const response = await fetch("/api/shopping-lists", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shoppingListId }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete list");
+      }
+
+      if (expandedList === shoppingListId) {
+        setExpandedList(null);
+      }
+
+      await fetchLists();
+    } catch (error) {
+      console.error("Failed to delete shopping list:", error);
+    } finally {
+      setActionLoading("");
+    }
+  };
+
   return (
     <>
-      <NavBar />
+      <NavBar
+        current="Shopping List"
+        onNewRecipe={() => setShowAddRecipe(true)}
+      />
+      <Modal
+        isOpen={showAddRecipe}
+        onClose={() => setShowAddRecipe(false)}
+        title="Add Recipe"
+      >
+        <AddRecipe inModal onClose={() => setShowAddRecipe(false)} />
+      </Modal>
+      <ConfirmModal
+        isOpen={pendingDeleteListId !== null}
+        onClose={() => setPendingDeleteListId(null)}
+        onConfirm={async () => {
+          if (pendingDeleteListId === null) return;
+          await handleDeleteList(pendingDeleteListId);
+          setPendingDeleteListId(null);
+        }}
+        title="Delete shopping list"
+        message="Delete this entire shopping list? This action cannot be undone."
+        confirmLabel="Delete list"
+        isLoading={
+          pendingDeleteListId !== null &&
+          actionLoading === `delete-list-${pendingDeleteListId}`
+        }
+      />
       <div className="min-h-screen bg-zinc-50">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="space-y-6">
@@ -96,9 +218,6 @@ export default function Shopping() {
                   {shoppingLists.length} past lists
                 </p>
               </div>
-              <button className="bg-zinc-900 text-white text-sm px-4 py-2 rounded-lg hover:bg-zinc-700 transition-colors font-medium">
-                + New List
-              </button>
             </div>
 
             <div className="space-y-4">
@@ -133,6 +252,16 @@ export default function Shopping() {
                       >
                         {list.status ? "completed" : "active"}
                       </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPendingDeleteListId(list.id);
+                        }}
+                        disabled={actionLoading === `delete-list-${list.id}`}
+                        className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium disabled:opacity-60"
+                      >
+                        Delete
+                      </button>
                       <svg
                         className={`w-4 h-4 text-zinc-400 transition-transform ${expandedList === list.id ? "rotate-180" : ""}`}
                         fill="none"
@@ -152,6 +281,29 @@ export default function Shopping() {
                   {expandedList === list.id && (
                     <div className="px-5 pb-5 border-t border-zinc-100">
                       <div className="pt-4 space-y-2">
+                        <div className="flex items-center gap-2 mb-3">
+                          <input
+                            value={newItemByList[list.id] ?? ""}
+                            onChange={(e) =>
+                              setNewItemByList((prev) => ({
+                                ...prev,
+                                [list.id]: e.target.value,
+                              }))
+                            }
+                            placeholder="Add ingredient..."
+                            className="flex-1 border border-zinc-300 rounded-md px-3 py-2 text-sm"
+                          />
+                          <button
+                            onClick={() => handleAddItem(list.id)}
+                            disabled={actionLoading === `add-${list.id}`}
+                            className="text-sm bg-zinc-900 text-white px-3 py-2 rounded-md disabled:opacity-60"
+                          >
+                            {actionLoading === `add-${list.id}`
+                              ? "Adding..."
+                              : "Add"}
+                          </button>
+                        </div>
+
                         {list.items.map((item) => (
                           <div
                             key={item.ingredientId}
@@ -178,6 +330,18 @@ export default function Shopping() {
                             >
                               {item.ingredient.name}
                             </span>
+                            <button
+                              onClick={() =>
+                                handleDeleteItem(list.id, item.ingredientId)
+                              }
+                              disabled={
+                                actionLoading ===
+                                `delete-item-${list.id}-${item.ingredientId}`
+                              }
+                              className="text-xs text-red-600 hover:text-red-700 disabled:opacity-60"
+                            >
+                              Remove
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -203,7 +367,7 @@ export default function Shopping() {
                   Automatically build a shopping list from this week's schedule.
                 </div>
               </div>
-              <button className="bg-white text-zinc-900 text-sm font-medium px-4 py-2 rounded-lg hover:bg-zinc-100 transition-colors flex-shrink-0">
+              <button className="bg-white text-zinc-900 text-sm font-medium px-4 py-2 rounded-lg hover:bg-zinc-100 transition-colors shrink-0">
                 Generate List →
               </button>
             </div>
