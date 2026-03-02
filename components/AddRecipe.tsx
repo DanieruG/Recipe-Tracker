@@ -98,15 +98,6 @@ export default function AddRecipe({ inModal, onClose }: AddRecipeProps) {
         >
           <div className="flex items-center justify-between mb-2">
             <div className="text-xl font-semibold">Add a recipe</div>
-            {inModal && onClose && (
-              <button
-                type="button"
-                onClick={onClose}
-                className="bg-black font-semibold text-white rounded-md py-2 px-3"
-              >
-                Close
-              </button>
-            )}
           </div>
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="grid grid-cols-2 auto-rows-min h-full gap-x-8 gap-y-4">
