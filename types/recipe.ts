@@ -19,8 +19,8 @@ export type RecipeFromDb = {
     healthiness: string
     instructions: string
     rating?: number | undefined
-    tags?: string[]
-    lastMade?: Date | null
+    tags?: { id: number; name: string }[]
+    lastMade?: Date | string | null
     timesIncluded?: number
     ingredients?: { ingredient: { id: string; name: string } }[]
 }
