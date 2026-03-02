@@ -4,10 +4,11 @@ import { useState } from "react";
 
 interface NavBarProps {
   onNewRecipe?: () => void;
+  current: string;
 }
 
-export default function NavBar({ onNewRecipe }: NavBarProps) {
-  const [active, setActive] = useState("");
+export default function NavBar({ onNewRecipe, current }: NavBarProps) {
+  const [active, setActive] = useState(current);
   const navElements = [
     { name: "Dashboard", path: "/dashboard" },
     { name: "Recipes", path: "/recipes" },
@@ -30,8 +31,7 @@ export default function NavBar({ onNewRecipe }: NavBarProps) {
             <a
               key={e.name}
               href={e.path}
-              onClick={() => setActive(e.name)}
-              className={`${active == e.name ? "bg-zinc-950 text-white" : "text-zinc-500 hover:text-black"} font-medium  px-2 py-2  hover:cursor-pointer rounded-md transition-all duration-100`}
+              className={`${active === e.name ? "bg-zinc-950 text-white" : "text-zinc-500 hover:text-black"} font-medium  px-2 py-2  hover:cursor-pointer rounded-md transition-all duration-100`}
             >
               {e.name}
             </a>
