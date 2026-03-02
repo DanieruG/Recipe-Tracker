@@ -4,7 +4,7 @@ import { useState } from "react";
 
 interface NavBarProps {
   onNewRecipe?: () => void;
-  current: string;
+  current?: string;
 }
 
 export default function NavBar({ onNewRecipe, current }: NavBarProps) {
