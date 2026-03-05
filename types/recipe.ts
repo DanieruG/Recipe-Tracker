@@ -13,10 +13,12 @@ export type Recipe = Prisma.RecipeGetPayload<{
 
 export type RecipeFromDb = {
     id: number
+    userId?: string | null
     name: string
     mealType: string
-    effort: string
-    healthiness: string
+    isFavorite?: boolean
+    effort: string | null
+    healthiness: string | null
     instructions: string
     rating?: number | undefined
     tags?: { id: number; name: string }[]
