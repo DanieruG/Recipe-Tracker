@@ -11,12 +11,14 @@ datasource db {
 }
 
 model Recipe {
-  id           Int    @id @default(autoincrement())
+  id           Int     @id @default(autoincrement())
+  userId       String?
   name         String
   mealType     String
-  effort       String
-  healthiness  String
+  effort       String?
+  healthiness  String?
   instructions String
+  isFavorite   Boolean @default(false)
 
   ingredients RecipeIngredient[]
   // ALL ingredients used in this recipe
@@ -26,6 +28,8 @@ model Recipe {
   tags          Tag[] // many-to-many relation to Tag model
   lastMade      DateTime @default(now())
   timesIncluded Int      @default(0)
+
+  @@index([userId])
 }
 
 // link recipe table to ingredient table
@@ -62,15 +66,21 @@ model RecipeIngredient {
 
 model Schedule {
   id        Int      @id @default(autoincrement())
+  userId    String?
   weekPlan  Json
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model ShoppingList {
   id        Int                @id @default(autoincrement())
+  userId    String?
   createdAt DateTime           @default(now())
   status    Boolean            @default(false) // false = active, true = completed
   items     ShoppingListItem[]
+
+  @@index([userId])
 }
 
 model ShoppingListItem {
