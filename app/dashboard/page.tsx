@@ -6,6 +6,7 @@ import StatCard from "@/components/StatCard";
 import { RecipeFromDb } from "@/types/recipe";
 import { Modal } from "@/components/Modal";
 import AddRecipe from "@/components/AddRecipe"; // component for recipe form
+import { buildSessionHeaders } from "@/lib/session";
 
 const categoryColors: Record<string, string> = {
   Breakfast: "bg-amber-100 text-amber-700",
@@ -88,7 +89,9 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchRecipes = async () => {
       try {
-        const response = await fetch("/api/recipe-list");
+        const response = await fetch("/api/recipe-list", {
+          headers: buildSessionHeaders(),
+        });
         const data = await response.json();
         setRecipes(data);
       } catch (error) {
@@ -102,7 +105,9 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchLists = async () => {
       try {
-        const response = await fetch("/api/shopping-lists");
+        const response = await fetch("/api/shopping-lists", {
+          headers: buildSessionHeaders(),
+        });
         const data = await response.json();
         setShoppingLists(data);
       } catch (error) {
@@ -116,7 +121,9 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchSchedules = async () => {
       try {
-        const response = await fetch("/api/schedules");
+        const response = await fetch("/api/schedules", {
+          headers: buildSessionHeaders(),
+        });
         const data = await response.json();
         setSchedules(data);
       } catch (error) {
@@ -149,7 +156,7 @@ export default function Dashboard() {
     try {
       const response = await fetch("/api/shopping-lists", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: buildSessionHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ shoppingListId, ingredientId, checked }),
       });
 
@@ -184,19 +191,21 @@ export default function Dashboard() {
         <AddRecipe inModal onClose={() => setShowAddRecipe(false)} />
       </Modal>
 
-      <main className="max-w-8xl mx-auto px-6 py-8">
+      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <section>
-          <div className="font-semibold text-4xl flex items-center">
+          <div className="font-semibold text-2xl sm:text-4xl flex items-center">
             <span>Good morning! 👋</span>
           </div>
           <p className="text-sm text-zinc-500">
-            Here's what's on the menu today...
+            Here&apos;s what&apos;s on the menu today...
           </p>
-          <div className="flex flex-row justify-between items-stretch gap-6">
+          <div className="flex flex-col lg:flex-row justify-between items-stretch gap-4 sm:gap-6 mt-4">
             <div className="flex-1">
               <StatCard
                 icon="📖"
-                number={recipes.length}
+                number={
+                  recipes.length > 100 ? "100+" : recipes.length.toString()
+                }
                 title="Recipes Saved"
                 description="An additional 4 recipes added this week!"
               />
@@ -204,17 +213,21 @@ export default function Dashboard() {
             <div className="flex-1">
               <StatCard
                 icon="🛒"
-                number={shoppingLists.length}
+                number={
+                  shoppingLists.length > 100
+                    ? "100+"
+                    : shoppingLists.length.toString()
+                }
                 title="Shopping Lists"
-                description="3 active lists for the week"
+                description="1 active lists for the week"
               />
             </div>
             <div className="flex-1">
               <StatCard
                 icon="📅"
-                number={schedules.length}
-                title="Meal Plans"
-                description="2 meal plans scheduled this month"
+                number={schedules.length.toString()}
+                title="Active Meal Plan(s)"
+                description="1 meal plans scheduled this month"
               />
             </div>
           </div>
@@ -231,7 +244,7 @@ export default function Dashboard() {
               </a>
             </div>
             {currentWeekSchedule ? (
-              <div className="grid grid-cols-7 gap-3 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 mt-4">
                 {weekDays.map((day) => {
                   const dayPlan = dayPlanMap[day];
 
@@ -267,7 +280,7 @@ export default function Dashboard() {
                                 }}
                                 className="w-full text-left text-xs text-zinc-700 hover:text-zinc-900"
                               >
-                                <div className="truncate">{recipe.name}</div>
+                                <div>{recipe.name}</div>
                                 <div className="underline text-zinc-500">
                                   More
                                 </div>
@@ -311,12 +324,6 @@ export default function Dashboard() {
                     {selectedMealType}
                   </span>
                 )}
-                <span className="text-xs bg-zinc-100 text-zinc-700 px-2 py-1 rounded-full">
-                  Effort: {selectedScheduleRecipe.effort}
-                </span>
-                <span className="text-xs bg-zinc-100 text-zinc-700 px-2 py-1 rounded-full">
-                  Healthiness: {selectedScheduleRecipe.healthiness}
-                </span>
               </div>
 
               <div>
@@ -357,7 +364,7 @@ export default function Dashboard() {
         </Modal>
 
         <section>
-          <div className="grid grid-cols-2 mt-10 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 mt-10 gap-4">
             <div className="bg-white border border-zinc-200 rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-semibold text-zinc-900">Recently Added</h2>

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Modal } from "@/components/Modal";
 import AddRecipe from "@/components/AddRecipe";
 import ConfirmModal from "@/components/ConfirmModal";
+import { buildSessionHeaders } from "@/lib/session";
 
 type ShoppingListItem = {
   shoppingListId: number;
@@ -38,7 +39,9 @@ export default function Shopping() {
 
   const fetchLists = async () => {
     try {
-      const response = await fetch("/api/shopping-lists");
+      const response = await fetch("/api/shopping-lists", {
+        headers: buildSessionHeaders(),
+      });
       const data = await response.json();
       setShoppingLists(data);
     } catch (error) {
@@ -60,7 +63,7 @@ export default function Shopping() {
     try {
       const response = await fetch("/api/shopping-lists", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: buildSessionHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ shoppingListId, ingredientId, checked }),
       });
 
@@ -111,7 +114,7 @@ export default function Shopping() {
     try {
       const response = await fetch("/api/shopping-lists", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: buildSessionHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ shoppingListId, ingredientName }),
       });
 
@@ -136,7 +139,7 @@ export default function Shopping() {
     try {
       const response = await fetch("/api/shopping-lists", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: buildSessionHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ shoppingListId, ingredientId }),
       });
 
@@ -157,7 +160,7 @@ export default function Shopping() {
     try {
       const response = await fetch("/api/shopping-lists", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: buildSessionHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ shoppingListId }),
       });
 
@@ -172,6 +175,32 @@ export default function Shopping() {
       await fetchLists();
     } catch (error) {
       console.error("Failed to delete shopping list:", error);
+    } finally {
+      setActionLoading("");
+    }
+  };
+
+  const handleCreateBlankList = async () => {
+    setActionLoading("create-list");
+    try {
+      const response = await fetch("/api/shopping-lists", {
+        method: "POST",
+        headers: buildSessionHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create shopping list");
+      }
+
+      const result = await response.json();
+      await fetchLists();
+
+      if (result?.shoppingList?.id) {
+        setExpandedList(result.shoppingList.id);
+      }
+    } catch (error) {
+      console.error("Failed to create shopping list:", error);
     } finally {
       setActionLoading("");
     }
@@ -209,7 +238,7 @@ export default function Shopping() {
       <div className="min-h-screen bg-zinc-50">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <h1 className="text-2xl font-semibold text-zinc-900">
                   Shopping Lists
@@ -232,21 +261,21 @@ export default function Shopping() {
                     }
                     className="w-full flex items-center justify-between p-5 hover:bg-zinc-50 transition-colors text-left"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center text-sm">
                         🛒
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <div className="font-semibold text-zinc-900 text-sm">
                           Shopping List
                         </div>
-                        <div className="text-xs text-zinc-400 mt-0.5">
+                        <div className="text-xs text-zinc-400 mt-0.5 truncate">
                           {formatDate(list.createdAt)} · {list.items.length}{" "}
                           items
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                       <span
                         className={`text-xs ${list.status ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-700"} px-2 py-0.5 rounded-full font-medium capitalize`}
                       >
@@ -281,7 +310,7 @@ export default function Shopping() {
                   {expandedList === list.id && (
                     <div className="px-5 pb-5 border-t border-zinc-100">
                       <div className="pt-4 space-y-2">
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
                           <input
                             value={newItemByList[list.id] ?? ""}
                             onChange={(e) =>
@@ -358,17 +387,23 @@ export default function Shopping() {
             </div>
 
             {/* Quick generate */}
-            <div className="bg-zinc-900 text-white rounded-xl p-6 flex items-center justify-between">
+            <div className="bg-zinc-900 text-white rounded-xl p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <div className="font-semibold mb-1">
-                  Generate from meal plan
+                  Don&apos;t need a schedule?
                 </div>
                 <div className="text-zinc-400 text-sm">
-                  Automatically build a shopping list from this week's schedule.
+                  Create an empty shopping list.
                 </div>
               </div>
-              <button className="bg-white text-zinc-900 text-sm font-medium px-4 py-2 rounded-lg hover:bg-zinc-100 transition-colors shrink-0">
-                Generate List →
+              <button
+                onClick={handleCreateBlankList}
+                disabled={actionLoading === "create-list"}
+                className="bg-white text-zinc-900 text-sm font-medium px-4 py-2 rounded-lg hover:bg-zinc-100 transition-colors shrink-0 disabled:opacity-60"
+              >
+                {actionLoading === "create-list"
+                  ? "Creating..."
+                  : "Create List →"}
               </button>
             </div>
           </div>

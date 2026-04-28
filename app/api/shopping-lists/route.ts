@@ -1,9 +1,40 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 
+function getSessionId(request: NextRequest) {
+    return request.headers.get('x-session-id')?.trim();
+}
+
+function normalizeSessionId(value?: unknown) {
+    if (typeof value !== 'string') return undefined;
+    const trimmed = value.trim();
+    return trimmed || undefined;
+}
+
+function parseShoppingListId(value: unknown): number | null {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return null;
+    }
+
+    return Math.floor(parsed);
+}
+
+function getVisibilityWhere(sessionId?: string) {
+    if (sessionId) {
+        return {
+            OR: [{ userId: null }, { userId: sessionId }],
+        };
+    }
+
+    return { userId: null };
+}
+
 export async function GET(request: NextRequest) {
     try {
+        const sessionId = getSessionId(request);
         const shoppingLists = await prisma.shoppingList.findMany({
+            where: getVisibilityWhere(sessionId),
             orderBy: { createdAt: 'desc' },
             include: {
                 items: {
@@ -25,12 +56,37 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
     try {
-        const { shoppingListId, ingredientId, checked } = await request.json();
+        const body = await request.json();
+        const { shoppingListId, ingredientId, checked } = body;
+        const sessionId = getSessionId(request) ?? normalizeSessionId(body?.sessionId);
+        const parsedShoppingListId = parseShoppingListId(shoppingListId);
+
+        if (!parsedShoppingListId || typeof ingredientId !== 'string' || typeof checked !== 'boolean') {
+            return NextResponse.json(
+                { error: 'shoppingListId, ingredientId and checked are required' },
+                { status: 400 }
+            );
+        }
+
+        const shoppingList = await prisma.shoppingList.findFirst({
+            where: {
+                id: parsedShoppingListId,
+                ...getVisibilityWhere(sessionId),
+            },
+            select: { id: true },
+        });
+
+        if (!shoppingList) {
+            return NextResponse.json(
+                { error: 'Shopping list not found' },
+                { status: 404 }
+            );
+        }
 
         await prisma.shoppingListItem.update({
             where: {
                 shoppingListId_ingredientId: {
-                    shoppingListId,
+                    shoppingListId: shoppingList.id,
                     ingredientId
                 }
             },
@@ -38,7 +94,7 @@ export async function PATCH(request: NextRequest) {
         });
 
         const updatedItems = await prisma.shoppingListItem.findMany({
-            where: { shoppingListId },
+            where: { shoppingListId: shoppingList.id },
             select: { checked: true }
         });
 
@@ -46,7 +102,7 @@ export async function PATCH(request: NextRequest) {
             updatedItems.length > 0 && updatedItems.every((item) => item.checked);
 
         await prisma.shoppingList.update({
-            where: { id: shoppingListId },
+            where: { id: shoppingList.id },
             data: { status: isCompleted }
         });
 
@@ -61,12 +117,47 @@ export async function PATCH(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const { shoppingListId, ingredientName } = await request.json();
+        const body = await request.json().catch(() => ({}));
+        const { shoppingListId, ingredientName } = body ?? {};
+        const sessionId = getSessionId(request) ?? normalizeSessionId(body?.sessionId);
+        const parsedShoppingListId = parseShoppingListId(shoppingListId);
 
-        if (!shoppingListId || !ingredientName?.trim()) {
+        if (!parsedShoppingListId && !ingredientName) {
+            const createdList = await prisma.shoppingList.create({
+                data: {
+                    userId: sessionId || null,
+                },
+                include: {
+                    items: {
+                        include: {
+                            ingredient: true
+                        }
+                    }
+                }
+            });
+
+            return NextResponse.json({ success: true, shoppingList: createdList });
+        }
+
+        if (!parsedShoppingListId || !ingredientName?.trim()) {
             return NextResponse.json(
                 { error: 'shoppingListId and ingredientName are required' },
                 { status: 400 }
+            );
+        }
+
+        const shoppingList = await prisma.shoppingList.findFirst({
+            where: {
+                id: parsedShoppingListId,
+                ...getVisibilityWhere(sessionId),
+            },
+            select: { id: true },
+        });
+
+        if (!shoppingList) {
+            return NextResponse.json(
+                { error: 'Shopping list not found' },
+                { status: 404 }
             );
         }
 
@@ -79,7 +170,7 @@ export async function POST(request: NextRequest) {
         await prisma.shoppingListItem.upsert({
             where: {
                 shoppingListId_ingredientId: {
-                    shoppingListId: Number(shoppingListId),
+                    shoppingListId: shoppingList.id,
                     ingredientId: ingredient.id
                 }
             },
@@ -87,14 +178,14 @@ export async function POST(request: NextRequest) {
                 checked: false
             },
             create: {
-                shoppingListId: Number(shoppingListId),
+                shoppingListId: shoppingList.id,
                 ingredientId: ingredient.id,
                 checked: false
             }
         });
 
         await prisma.shoppingList.update({
-            where: { id: Number(shoppingListId) },
+            where: { id: shoppingList.id },
             data: { status: false }
         });
 
@@ -109,12 +200,30 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
     try {
-        const { shoppingListId, ingredientId } = await request.json();
+        const body = await request.json();
+        const { shoppingListId, ingredientId } = body;
+        const sessionId = getSessionId(request) ?? normalizeSessionId(body?.sessionId);
+        const parsedShoppingListId = parseShoppingListId(shoppingListId);
 
-        if (!shoppingListId) {
+        if (!parsedShoppingListId) {
             return NextResponse.json(
                 { error: 'shoppingListId is required' },
                 { status: 400 }
+            );
+        }
+
+        const shoppingList = await prisma.shoppingList.findFirst({
+            where: {
+                id: parsedShoppingListId,
+                ...getVisibilityWhere(sessionId),
+            },
+            select: { id: true },
+        });
+
+        if (!shoppingList) {
+            return NextResponse.json(
+                { error: 'Shopping list not found' },
+                { status: 404 }
             );
         }
 
@@ -122,14 +231,14 @@ export async function DELETE(request: NextRequest) {
             await prisma.shoppingListItem.delete({
                 where: {
                     shoppingListId_ingredientId: {
-                        shoppingListId: Number(shoppingListId),
+                        shoppingListId: shoppingList.id,
                         ingredientId
                     }
                 }
             });
 
             const updatedItems = await prisma.shoppingListItem.findMany({
-                where: { shoppingListId: Number(shoppingListId) },
+                where: { shoppingListId: shoppingList.id },
                 select: { checked: true }
             });
 
@@ -137,7 +246,7 @@ export async function DELETE(request: NextRequest) {
                 updatedItems.length > 0 && updatedItems.every((item) => item.checked);
 
             await prisma.shoppingList.update({
-                where: { id: Number(shoppingListId) },
+                where: { id: shoppingList.id },
                 data: { status: isCompleted }
             });
 
@@ -145,7 +254,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         await prisma.shoppingList.delete({
-            where: { id: Number(shoppingListId) }
+            where: { id: shoppingList.id }
         });
 
         return NextResponse.json({ success: true });

@@ -1,9 +1,48 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client/client";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
+type WeekPlanEntry = {
+    day?: string;
+    meals?: Record<string, unknown>;
+    [key: string]: unknown;
+};
+
+type ReplacementRecipe = {
+    id: number;
+    userId: string | null;
+    name: string;
+    mealType: string;
+    isFavorite: boolean;
+    effort: string | null;
+    healthiness: string | null;
+    instructions: string;
+    rating: number | null;
+    tags: { id: number; name: string }[];
+    lastMade: Date;
+    timesIncluded: number;
+    ingredients: { ingredient: { id: string; name: string } }[];
+};
+
+function getSessionId(request: NextRequest) {
+    return request.headers.get("x-session-id")?.trim();
+}
+
+function getVisibilityWhere(sessionId?: string) {
+    if (sessionId) {
+        return {
+            OR: [{ userId: null }, { userId: sessionId }],
+        };
+    }
+
+    return { userId: null };
+}
+
+export async function GET(request: NextRequest) {
     try {
+        const sessionId = getSessionId(request);
         const schedules = await prisma.schedule.findMany({
+            where: getVisibilityWhere(sessionId),
             orderBy: {
                 createdAt: "desc",
             },
@@ -21,6 +60,7 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
     try {
         const { scheduleId, day, mealType, recipeId } = await request.json();
+        const sessionId = getSessionId(request);
 
         if (!scheduleId || !day || !mealType) {
             return NextResponse.json(
@@ -36,26 +76,31 @@ export async function PATCH(request: NextRequest) {
             );
         }
 
-        const schedule = await prisma.schedule.findUnique({
-            where: { id: Number(scheduleId) },
+        const schedule = await prisma.schedule.findFirst({
+            where: {
+                id: Number(scheduleId),
+                ...getVisibilityWhere(sessionId),
+            },
         });
 
         if (!schedule) {
             return NextResponse.json({ error: "Schedule not found" }, { status: 404 });
         }
 
-        const weekPlan = Array.isArray(schedule.weekPlan)
-            ? (schedule.weekPlan as any[])
+        const weekPlan: WeekPlanEntry[] = Array.isArray(schedule.weekPlan)
+            ? (schedule.weekPlan as WeekPlanEntry[])
             : [];
 
-        let replacementRecipe: any = null;
+        let replacementRecipe: ReplacementRecipe | null = null;
         if (recipeId !== null && recipeId !== undefined && recipeId !== "") {
-            replacementRecipe = await prisma.recipe.findUnique({
+            const replacement = await prisma.recipe.findUnique({
                 where: { id: Number(recipeId) },
                 select: {
                     id: true,
+                    userId: true,
                     name: true,
                     mealType: true,
+                    isFavorite: true,
                     effort: true,
                     healthiness: true,
                     instructions: true,
@@ -76,21 +121,46 @@ export async function PATCH(request: NextRequest) {
                 },
             });
 
-            if (!replacementRecipe) {
+            if (!replacement) {
                 return NextResponse.json(
                     { error: "Replacement recipe not found" },
                     { status: 404 }
                 );
             }
+
+            replacementRecipe = replacement;
+
+            const canAccessRecipe =
+                replacementRecipe.userId === null ||
+                (sessionId ? replacementRecipe.userId === sessionId : false);
+
+            if (!canAccessRecipe) {
+                return NextResponse.json(
+                    { error: "Replacement recipe not available" },
+                    { status: 403 }
+                );
+            }
+
+            if (!replacementRecipe.isFavorite) {
+                return NextResponse.json(
+                    { error: "Replacement recipe must be a favorite" },
+                    { status: 400 }
+                );
+            }
         }
 
-        const updatedWeekPlan = weekPlan.map((dayPlan: any) => {
+        const updatedWeekPlan = weekPlan.map((dayPlan) => {
             if (dayPlan?.day !== day) return dayPlan;
+
+            const existingMeals =
+                dayPlan?.meals && typeof dayPlan.meals === "object"
+                    ? dayPlan.meals
+                    : {};
 
             return {
                 ...dayPlan,
                 meals: {
-                    ...(dayPlan?.meals ?? {}),
+                    ...existingMeals,
                     [mealType]: replacementRecipe,
                 },
             };
@@ -98,7 +168,7 @@ export async function PATCH(request: NextRequest) {
 
         const updatedSchedule = await prisma.schedule.update({
             where: { id: Number(scheduleId) },
-            data: { weekPlan: updatedWeekPlan },
+            data: { weekPlan: updatedWeekPlan as Prisma.InputJsonValue },
         });
 
         return NextResponse.json(updatedSchedule);
@@ -113,6 +183,7 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
     try {
         const { scheduleId } = await request.json();
+        const sessionId = getSessionId(request);
 
         if (!scheduleId) {
             return NextResponse.json(
@@ -121,8 +192,20 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
+        const schedule = await prisma.schedule.findFirst({
+            where: {
+                id: Number(scheduleId),
+                ...getVisibilityWhere(sessionId),
+            },
+            select: { id: true },
+        });
+
+        if (!schedule) {
+            return NextResponse.json({ error: "Schedule not found" }, { status: 404 });
+        }
+
         await prisma.schedule.delete({
-            where: { id: Number(scheduleId) },
+            where: { id: schedule.id },
         });
 
         return NextResponse.json({ success: true });

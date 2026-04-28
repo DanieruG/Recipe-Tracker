@@ -8,6 +8,8 @@ import CreateSchedule from "@/components/CreateSchedule";
 import Stars from "@/components/Stars";
 import AddRecipe from "@/components/AddRecipe";
 import ConfirmModal from "@/components/ConfirmModal";
+import Select, { SingleValue } from "react-select";
+import { buildSessionHeaders } from "@/lib/session";
 
 const categoryColors: Record<string, string> = {
   Breakfast: "bg-amber-100 text-amber-700",
@@ -38,6 +40,15 @@ type DayPlan = {
 
 type WeekPlan = DayPlan[];
 
+type MealKey = "breakfast" | "lunch" | "dinner";
+
+type DayMealSelection = Record<MealKey, string>;
+
+type RecipeOption = {
+  label: string;
+  value: string;
+};
+
 type ScheduleFromDb = {
   id: number;
   createdAt: string;
@@ -60,10 +71,18 @@ export default function Schedules() {
   const [pendingDeleteScheduleId, setPendingDeleteScheduleId] = useState<
     number | null
   >(null);
+  const [dayEditorState, setDayEditorState] = useState<{
+    scheduleId: number;
+    day: string;
+    selections: DayMealSelection;
+    initialSelections: DayMealSelection;
+  } | null>(null);
 
   const fetchSchedules = async () => {
     try {
-      const response = await fetch("/api/schedules");
+      const response = await fetch("/api/schedules", {
+        headers: buildSessionHeaders(),
+      });
       const data = await response.json();
       const normalizedSchedules = Array.isArray(data)
         ? data.filter((schedule) => Array.isArray(schedule?.weekPlan))
@@ -81,7 +100,9 @@ export default function Schedules() {
   useEffect(() => {
     const fetchRecipes = async () => {
       try {
-        const response = await fetch("/api/recipe-list");
+        const response = await fetch("/api/recipe-list?favoriteOnly=true", {
+          headers: buildSessionHeaders(),
+        });
         const data = await response.json();
         setRecipes(data);
       } catch (error) {
@@ -97,7 +118,7 @@ export default function Schedules() {
     try {
       const response = await fetch("/api/schedules", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: buildSessionHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ scheduleId }),
       });
 
@@ -120,19 +141,16 @@ export default function Schedules() {
     }
   };
 
-  const handleReplaceMeal = async (
+  const replaceMealRequest = async (
     scheduleId: number,
     day: string,
-    mealType: "breakfast" | "lunch" | "dinner",
+    mealType: MealKey,
     recipeId: string,
   ) => {
-    const loadingKey = `replace-${scheduleId}-${day}-${mealType}`;
-    setScheduleActionLoading(loadingKey);
-
     try {
       const response = await fetch("/api/schedules", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: buildSessionHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           scheduleId,
           day,
@@ -144,10 +162,72 @@ export default function Schedules() {
       if (!response.ok) {
         throw new Error("Failed to update meal");
       }
-
-      await fetchSchedules();
     } catch (error) {
       console.error("Failed to update meal:", error);
+      throw error;
+    }
+  };
+
+  const openDayEditor = (
+    scheduleId: number,
+    day: string,
+    dayPlan?: DayPlan,
+  ) => {
+    const selections: DayMealSelection = {
+      breakfast: dayPlan?.meals?.breakfast?.id
+        ? String(dayPlan.meals.breakfast.id)
+        : "",
+      lunch: dayPlan?.meals?.lunch?.id ? String(dayPlan.meals.lunch.id) : "",
+      dinner: dayPlan?.meals?.dinner?.id ? String(dayPlan.meals.dinner.id) : "",
+    };
+
+    setDayEditorState({
+      scheduleId,
+      day,
+      selections,
+      initialSelections: selections,
+    });
+  };
+
+  const updateDaySelection = (
+    mealType: MealKey,
+    option: SingleValue<RecipeOption>,
+  ) => {
+    setDayEditorState((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        selections: {
+          ...current.selections,
+          [mealType]: option?.value ?? "",
+        },
+      };
+    });
+  };
+
+  const handleSaveDayChanges = async () => {
+    if (!dayEditorState) return;
+
+    const { scheduleId, day, selections, initialSelections } = dayEditorState;
+    const loadingKey = `edit-day-${scheduleId}-${day}`;
+    setScheduleActionLoading(loadingKey);
+
+    try {
+      const changes = (Object.keys(selections) as MealKey[]).filter(
+        (mealType) => selections[mealType] !== initialSelections[mealType],
+      );
+
+      await Promise.all(
+        changes.map((mealType) =>
+          replaceMealRequest(scheduleId, day, mealType, selections[mealType]),
+        ),
+      );
+
+      await fetchSchedules();
+      setDayEditorState(null);
+    } catch (error) {
+      console.error("Failed to save day changes:", error);
     } finally {
       setScheduleActionLoading("");
     }
@@ -193,7 +273,7 @@ export default function Schedules() {
       <div className="min-h-screen bg-zinc-50">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <h1 className="text-2xl font-semibold text-zinc-900">
                   Meal Schedules
@@ -204,7 +284,7 @@ export default function Schedules() {
               </div>
               <button
                 onClick={() => setShowCreateSchedule(true)}
-                className="bg-zinc-900 text-white text-sm px-4 py-2 rounded-lg hover:bg-zinc-700 transition-colors font-medium"
+                className="bg-zinc-900 text-white text-sm px-4 py-2 rounded-lg hover:bg-zinc-700 hover:cursor-pointer transition-colors font-medium"
               >
                 + Plan This Week
               </button>
@@ -246,11 +326,11 @@ export default function Schedules() {
                         }}
                         className="flex-1 flex items-center justify-between text-left"
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center text-sm">
                             📅
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <div className="font-semibold text-zinc-900 text-sm">
                               Week beginning {createdLabel}
                             </div>
@@ -292,7 +372,7 @@ export default function Schedules() {
                     </div>
                     {expandedSchedule === si && (
                       <div className="px-5 pb-5 border-t border-zinc-100">
-                        <div className="grid grid-cols-7 gap-3 pt-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 pt-4">
                           {orderedWeekDays.map((day) => {
                             const dayPlan = dayPlanMap[day];
 
@@ -302,7 +382,17 @@ export default function Schedules() {
                                 className="flex flex-col bg-zinc-100 border border-zinc-300 rounded-md p-3"
                               >
                                 <div className="font-semibold text-sm mb-2">
-                                  {day}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span>{day}</span>
+                                    <button
+                                      onClick={() =>
+                                        openDayEditor(s.id, day, dayPlan)
+                                      }
+                                      className="text-[11px] font-medium px-2 py-1 rounded-md bg-zinc-200 hover:bg-zinc-300 text-zinc-700"
+                                    >
+                                      Edit day
+                                    </button>
+                                  </div>
                                 </div>
 
                                 {[
@@ -316,11 +406,6 @@ export default function Schedules() {
                                       : meal.key === "lunch"
                                         ? dayPlan?.meals?.lunch
                                         : dayPlan?.meals?.dinner;
-                                  const mealRecipes = recipes.filter(
-                                    (item) => item.mealType === meal.label,
-                                  );
-                                  const replaceKey = `replace-${s.id}-${day}-${meal.key}`;
-
                                   return (
                                     <div
                                       key={meal.key}
@@ -337,9 +422,7 @@ export default function Schedules() {
                                           }}
                                           className="w-full text-left text-xs text-zinc-700 hover:text-zinc-900"
                                         >
-                                          <div className="truncate">
-                                            {recipe.name}
-                                          </div>
+                                          <div>{recipe.name}</div>
                                           <div className="underline text-zinc-500">
                                             More
                                           </div>
@@ -349,34 +432,6 @@ export default function Schedules() {
                                           No meal
                                         </div>
                                       )}
-
-                                      <select
-                                        value={
-                                          recipe?.id ? String(recipe.id) : ""
-                                        }
-                                        onChange={(e) =>
-                                          handleReplaceMeal(
-                                            s.id,
-                                            day,
-                                            meal.key as
-                                              | "breakfast"
-                                              | "lunch"
-                                              | "dinner",
-                                            e.target.value,
-                                          )
-                                        }
-                                        disabled={
-                                          scheduleActionLoading === replaceKey
-                                        }
-                                        className="mt-1 w-full border border-zinc-300 rounded-md px-2 py-1 text-xs bg-white"
-                                      >
-                                        <option value="">No meal</option>
-                                        {mealRecipes.map((item) => (
-                                          <option key={item.id} value={item.id}>
-                                            {item.name}
-                                          </option>
-                                        ))}
-                                      </select>
                                     </div>
                                   );
                                 })}
@@ -456,6 +511,73 @@ export default function Schedules() {
                 {selectedScheduleRecipe.instructions ||
                   "No instructions provided."}
               </p>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={!!dayEditorState}
+        onClose={() => {
+          if (!scheduleActionLoading.startsWith("edit-day-")) {
+            setDayEditorState(null);
+          }
+        }}
+        title={dayEditorState ? `Edit ${dayEditorState.day}` : "Edit day"}
+      >
+        {dayEditorState && (
+          <div className="space-y-4">
+            {[
+              { key: "breakfast" as MealKey, label: "Breakfast" },
+              { key: "lunch" as MealKey, label: "Lunch" },
+              { key: "dinner" as MealKey, label: "Dinner" },
+            ].map((meal) => {
+              const mealOptions: RecipeOption[] = recipes
+                .filter((recipe) => recipe.mealType === meal.label)
+                .map((recipe) => ({
+                  value: String(recipe.id),
+                  label: recipe.name,
+                }));
+
+              const selectedValue = mealOptions.find(
+                (option) =>
+                  option.value === dayEditorState.selections[meal.key],
+              );
+
+              return (
+                <div key={meal.key} className="space-y-1">
+                  <label className="text-sm font-medium text-zinc-800">
+                    {meal.label}
+                  </label>
+                  <Select<RecipeOption, false>
+                    options={mealOptions}
+                    value={selectedValue ?? null}
+                    onChange={(option) => updateDaySelection(meal.key, option)}
+                    isSearchable
+                    isClearable
+                    placeholder={`Select ${meal.label.toLowerCase()} recipe`}
+                  />
+                </div>
+              );
+            })}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setDayEditorState(null)}
+                disabled={scheduleActionLoading.startsWith("edit-day-")}
+                className="px-3 py-2 text-sm rounded-md border border-zinc-300 text-zinc-700 hover:bg-zinc-100 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveDayChanges}
+                disabled={scheduleActionLoading.startsWith("edit-day-")}
+                className="px-3 py-2 text-sm rounded-md bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-60"
+              >
+                {scheduleActionLoading.startsWith("edit-day-")
+                  ? "Saving..."
+                  : "Save changes"}
+              </button>
             </div>
           </div>
         )}

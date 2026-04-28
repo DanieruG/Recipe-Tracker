@@ -2,10 +2,11 @@
 import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
 import { createRecipe } from "../app/actions/actions";
-import { Form, useForm, Controller } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { useEffect, useState } from "react";
 import Error from "@/components/Error";
 import NavBar from "@/components/NavBar";
+import { getOrCreateSessionId } from "@/lib/session";
 
 type Options = {
   label: string;
@@ -35,8 +36,8 @@ type formFields = {
   tags?: string[];
   rating?: number;
   mealType: string;
-  effort: string;
-  healthiness: string;
+  effort?: string;
+  healthiness?: string;
   instructions: string;
 };
 
@@ -45,7 +46,7 @@ interface AddRecipeProps {
   onClose?: () => void; // callback when modal should close
 }
 
-export default function AddRecipe({ inModal, onClose }: AddRecipeProps) {
+export default function AddRecipe({ inModal }: AddRecipeProps) {
   const { register, control, handleSubmit, reset } = useForm<formFields>();
   const [coreIngredients, setCoreIng] = useState<Options[]>([]);
   const [tagOptions, setTagOptions] = useState<Options[]>([]);
@@ -74,7 +75,10 @@ export default function AddRecipe({ inModal, onClose }: AddRecipeProps) {
   }, []);
 
   const onSubmit = async (data: formFields) => {
-    const res = await createRecipe(data);
+    const res = await createRecipe({
+      ...data,
+      sessionId: getOrCreateSessionId(),
+    });
 
     if (!res.success) {
       setErrors(res.errors?.fieldErrors);
@@ -94,13 +98,13 @@ export default function AddRecipe({ inModal, onClose }: AddRecipeProps) {
         className={`flex flex-col justify-center items-center ${inModal ? "" : "min-h-screen"}`}
       >
         <div
-          className={`border border-zinc-300 bg-white overflow-hidden shadow-lg rounded-xl p-6 ${inModal ? "" : "mb-40"}`}
+          className={`w-full max-w-3xl border border-zinc-300 bg-white overflow-hidden shadow-lg rounded-xl p-4 sm:p-6 ${inModal ? "" : "mb-10 sm:mb-40"}`}
         >
           <div className="flex items-center justify-between mb-2">
             <div className="text-xl font-semibold">Add a recipe</div>
           </div>
           <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid grid-cols-2 auto-rows-min h-full gap-x-8 gap-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 auto-rows-min h-full gap-x-8 gap-y-4">
               <label className="flex flex-col">
                 Recipe Name:
                 <input
@@ -126,7 +130,7 @@ export default function AddRecipe({ inModal, onClose }: AddRecipeProps) {
                     <CreatableSelect
                       {...field}
                       name="coreIngredients"
-                      className={"w-60"}
+                      className="w-full"
                       options={coreIngredients}
                       value={coreIngredients.filter((c) =>
                         field.value?.includes(c.value),
@@ -166,7 +170,7 @@ export default function AddRecipe({ inModal, onClose }: AddRecipeProps) {
               </label>
 
               <label className="flex flex-col">
-                Effort:
+                Effort (optional):
                 <Controller
                   name="effort"
                   control={control}
@@ -179,18 +183,14 @@ export default function AddRecipe({ inModal, onClose }: AddRecipeProps) {
                         (c) => c.value === field.value,
                       )}
                       onChange={(option) => field.onChange(option?.value)}
+                      isClearable
                     />
                   )}
                 />
-                {errors?.effort && (
-                  <div className="text-sm text-red-500">
-                    {errors?.effort.map((c) => c)}
-                  </div>
-                )}
               </label>
 
               <label className="flex flex-col col-span-2">
-                Healthiness
+                Healthiness (optional)
                 {/* control links the name to the appropriate form field. field has a property value. */}
                 <Controller
                   name="healthiness"
@@ -203,14 +203,10 @@ export default function AddRecipe({ inModal, onClose }: AddRecipeProps) {
                       onChange={(option) => {
                         field.onChange(option?.value);
                       }}
+                      isClearable
                     />
                   )}
                 />
-                {errors?.healthiness && (
-                  <div className="text-sm text-red-500">
-                    {errors?.healthiness.map((c) => c)}
-                  </div>
-                )}
               </label>
 
               <label className="flex flex-col col-span-2">
