@@ -18,6 +18,16 @@ const difficultyToEffort: Record<string, string> = {
     hard: "slow",
 };
 
+function parseQuantity(raw: string) {
+    const match = raw.match(/^([\d.\/]+)\s*([a-zA-Z]+)?$/);
+    if (!match) return { quantity: null, unit: null };
+    return {
+        quantity: parseFloat(match[1]),
+        unit: match[2] ?? null
+    };
+}
+
+
 function normaliseRating(rawRating?: string): number | null {
     if (!rawRating) return null;
     const match = rawRating.match(/(\d+(?:\.\d+)?)/);
@@ -35,20 +45,25 @@ function normaliseInstructions(rawInstructions?: string[]): string {
         .join("\n\n");
 }
 
-function normaliseIngredients(rawIngredients?: string[][]): string[] {
+function normaliseIngredients(rawIngredients?: string[][]): { name: string; quantity: number | null; unit: string | null }[] {
     if (!Array.isArray(rawIngredients)) return [];
 
-    return Array.from(
-        new Set(
-            rawIngredients
-                .map((entry) => {
-                    if (!Array.isArray(entry)) return "";
-                    const candidate = (entry[1] || entry[0] || "").trim();
-                    return candidate;
-                })
-                .filter(Boolean),
-        ),
-    );
+    const seen = new Set<string>();
+
+    return rawIngredients
+        .map((entry) => {
+            if (!Array.isArray(entry)) return null;
+            const name = (entry[1] || entry[0] || "").trim();
+            if (!name) return null;
+            const { quantity, unit } = parseQuantity(entry[0] || "");
+            return { name, quantity, unit };
+        })
+        .filter((item): item is { name: string; quantity: number | null; unit: string | null } => {
+            if (!item) return false;
+            if (seen.has(item.name)) return false;
+            seen.add(item.name);
+            return true;
+        });
 }
 
 function normaliseTags(rawTags?: string[]): string[] {
@@ -113,11 +128,13 @@ export async function POST() {
                             })),
                         },
                         ingredients: {
-                            create: ingredientNames.map((ingredient) => ({
+                            create: ingredientNames.map(({name, quantity, unit}) => ({
+                                quantity,
+                                unit,
                                 ingredient: {
                                     connectOrCreate: {
-                                        where: { name: ingredient },
-                                        create: { name: ingredient },
+                                        where: { name },
+                                        create: { name },
                                     },
                                 },
                             })),
