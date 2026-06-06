@@ -8,6 +8,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model Recipe {
@@ -33,7 +34,7 @@ model Recipe {
 }
 
 // link recipe table to ingredient table
-
+// Optional fields for quantity and unit to allow for more detailed shopping lists and recipe instructions, but they can be null if not specified.
 model Ingredient {
   id   String @id @default(cuid())
   name String @unique
@@ -55,6 +56,8 @@ model Tag {
 model RecipeIngredient {
   recipeId     Int
   ingredientId String
+  quantity  Int?
+  unit  String?
 
   recipe     Recipe     @relation(fields: [recipeId], references: [id])
   ingredient Ingredient @relation(fields: [ingredientId], references: [id])
@@ -87,6 +90,8 @@ model ShoppingListItem {
   shoppingListId Int
   ingredientId   String
   checked        Boolean @default(false)
+  quantity       Int?
+  unit           Int?
 
   shoppingList ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
   ingredient   Ingredient   @relation(fields: [ingredientId], references: [id])
