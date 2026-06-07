@@ -21,7 +21,7 @@ type ReplacementRecipe = {
     tags: { id: number; name: string }[];
     lastMade: Date;
     timesIncluded: number;
-    ingredients: { ingredient: { id: string; name: string } }[];
+    ingredients?: { ingredient: { id: string; name: string }; quantity: number | null; unit: string | null }[]
 };
 
 function getSessionId(request: NextRequest) {
@@ -110,6 +110,8 @@ export async function PATCH(request: NextRequest) {
                     timesIncluded: true,
                     ingredients: {
                         select: {
+                            quantity: true,
+                            unit: true,
                             ingredient: {
                                 select: {
                                     id: true,
