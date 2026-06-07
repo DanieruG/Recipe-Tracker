@@ -492,12 +492,14 @@ export default function Schedules() {
               <div className="text-sm font-medium text-zinc-900 mb-1">
                 Ingredients
               </div>
-              {selectedScheduleRecipe.ingredients?.length ? (
-                <ul className="list-disc pl-5 text-sm text-zinc-700 space-y-1">
-                  {selectedScheduleRecipe.ingredients.map((item) => (
-                    <li key={item.ingredient.id}>{item.ingredient.name}</li>
-                  ))}
-                </ul>
+                  {selectedScheduleRecipe.ingredients?.length ? (
+                    <ul className="list-disc pl-5 text-sm text-zinc-700 space-y-1">
+                      {selectedScheduleRecipe.ingredients.map((item) => (
+                        <li key={`${item.quantity ?? ''}${item.unit ?? ''}${item.ingredient.id}`}>
+                          {item.quantity ?? ''}{item.unit ?? ''} {item.ingredient.name}
+                        </li>
+                      ))}
+                    </ul>
               ) : (
                 <p className="text-sm text-zinc-500">No ingredients listed.</p>
               )}

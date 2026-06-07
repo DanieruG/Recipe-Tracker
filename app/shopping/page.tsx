@@ -10,6 +10,8 @@ type ShoppingListItem = {
   shoppingListId: number;
   ingredientId: string;
   checked: boolean;
+  quantity: number | null;
+  unit: string | null;
   ingredient: {
     id: string;
     name: string;
@@ -255,7 +257,7 @@ export default function Shopping() {
                   key={list.id}
                   className="bg-white border border-zinc-200 rounded-xl overflow-hidden"
                 >
-                  <button
+                  <div
                     onClick={() =>
                       setExpandedList(expandedList === list.id ? null : list.id)
                     }
@@ -305,7 +307,7 @@ export default function Shopping() {
                         />
                       </svg>
                     </div>
-                  </button>
+                  </div>
 
                   {expandedList === list.id && (
                     <div className="px-5 pb-5 border-t border-zinc-100">
@@ -357,7 +359,7 @@ export default function Shopping() {
                                   : "text-zinc-700"
                               }`}
                             >
-                              {item.ingredient.name}
+                              {item.quantity && item.unit && `${item.quantity}${item.unit} `}{item.ingredient.name}
                             </span>
                             <button
                               onClick={() =>

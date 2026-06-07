@@ -16,14 +16,17 @@ const categoryColors: Record<string, string> = {
 };
 
 // mirror shopping list types used elsewhere
-export type ShoppingListItem = {
+type ShoppingListItem = {
   shoppingListId: number;
   ingredientId: string;
   checked: boolean;
+  quantity: number | null;
+  unit: string | null;
   ingredient: {
     id: string;
     name: string;
   };
+  status: boolean;
 };
 
 export type ShoppingList = {
@@ -340,7 +343,7 @@ export default function Dashboard() {
                 {selectedScheduleRecipe.ingredients?.length ? (
                   <ul className="list-disc pl-5 text-sm text-zinc-700 space-y-1">
                     {selectedScheduleRecipe.ingredients.map((item) => (
-                      <li key={item.ingredient.id}>{item.ingredient.name}</li>
+                      <li key={item.ingredient.id}>{item.quantity ?? ''}{item.unit ?? ''} {item.ingredient.name}</li>
                     ))}
                   </ul>
                 ) : (
@@ -445,7 +448,7 @@ export default function Dashboard() {
                               : "text-zinc-700"
                           }`}
                         >
-                          {item.ingredient.name}
+                          {item.quantity && item.unit && `${item.quantity}${item.unit} `}{item.ingredient.name}
                         </span>
                       </div>
                     ))}

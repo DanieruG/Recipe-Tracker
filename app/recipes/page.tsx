@@ -484,8 +484,8 @@ export default function ViewRecipes() {
                     {selectedRecipe.ingredients?.length ? (
                       <ul className="list-disc pl-5 text-sm text-zinc-700 space-y-1">
                         {selectedRecipe.ingredients.map((item) => (
-                          <li key={item.ingredient.id}>
-                            {item.ingredient.name}
+                          <li key={`${item.quantity ?? ''}${item.unit ?? ''}${item.ingredient.id}`}>
+                            {item.quantity ?? ''}{item.unit ?? ''} {item.ingredient.name}
                           </li>
                         ))}
                       </ul>
