@@ -293,8 +293,8 @@ export async function createSchedule(formData: custom) {
 
                     if (existing.quantity != null && recipeIngredient.quantity != null) {
                         existing.quantity = existing.quantity + recipeIngredient.quantity;
-                        }   
-                        
+                    }
+                       
                 } else {
                 ingredientObj.set(recipeIngredient.ingredient.name, {
                     name: recipeIngredient.ingredient.name,
