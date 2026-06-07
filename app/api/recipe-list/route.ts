@@ -14,6 +14,7 @@ function getRecipeVisibilityWhere(sessionId?: string | null) {
 
 export async function GET(request: NextRequest) {
     try {
+        // Search parameters for pagination, filtering, and session identification.
         const searchParams = request.nextUrl.searchParams;
         const pageParam = searchParams.get("page");
         const limitParam = searchParams.get("limit");
@@ -44,6 +45,7 @@ export async function GET(request: NextRequest) {
             ...(favoriteOnly ? { isFavorite: true } : {}),
         };
 
+        // If pagination parameters are not valid, return all matching recipes without pagination.
         if (!usePagination) {
             const recipes = await prisma.recipe.findMany({
                 where,
@@ -62,6 +64,8 @@ export async function GET(request: NextRequest) {
                     timesIncluded: true,
                     ingredients: {
                         select: {
+                            quantity: true,
+                            unit: true,
                             ingredient: {
                                 select: {
                                     id: true,
@@ -100,6 +104,8 @@ export async function GET(request: NextRequest) {
                     timesIncluded: true,
                     ingredients: {
                         select: {
+                            quantity: true,
+                            unit: true,
                             ingredient: {
                                 select: {
                                     id: true,
