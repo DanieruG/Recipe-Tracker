@@ -24,5 +24,5 @@ export type RecipeFromDb = {
     tags?: { id: number; name: string }[]
     lastMade?: Date | string | null
     timesIncluded?: number
-    ingredients?: { ingredient: { id: string; name: string } }[]
+    ingredients?: { ingredient: { id: string; name: string }; quantity: number | null; unit: string | null }[]
 }
