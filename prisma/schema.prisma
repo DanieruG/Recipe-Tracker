@@ -91,7 +91,7 @@ model ShoppingListItem {
   ingredientId   String
   checked        Boolean @default(false)
   quantity       Int?
-  unit           Int?
+  unit           String?
 
   shoppingList ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
   ingredient   Ingredient   @relation(fields: [ingredientId], references: [id])
