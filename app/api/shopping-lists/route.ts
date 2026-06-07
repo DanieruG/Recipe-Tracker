@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(shoppingLists);
     } catch (error) {
+        console.error(error)
         return NextResponse.json(
             { error: 'Failed to fetch shopping lists' },
             { status: 500 }
@@ -61,6 +62,7 @@ export async function GET(request: NextRequest) {
     }
 }
 
+// This handler will update the checked status of an item in the shopping list.
 export async function PATCH(request: NextRequest) {
     try {
         const body = await request.json();
@@ -89,7 +91,7 @@ export async function PATCH(request: NextRequest) {
                 { status: 404 }
             );
         }
-
+        
         await prisma.shoppingListItem.update({
             where: {
                 shoppingListId_ingredientId: {
@@ -105,6 +107,7 @@ export async function PATCH(request: NextRequest) {
             select: { checked: true }
         });
 
+        // Checks if there are any items in the shopping list and if all of them are checked to determine if the shopping list is completed.
         const isCompleted =
             updatedItems.length > 0 && updatedItems.every((item) => item.checked);
 
@@ -174,6 +177,7 @@ export async function POST(request: NextRequest) {
         }
 
         // upsert - update or insert. So if ingredient already exists, it won't create a duplicate.
+        // Alternative - if the item exists, the quantity needs to be incremented.
         const ingredient = await prisma.ingredient.upsert({
             where: { name: ingredientName.trim() },
             update: {},
@@ -182,6 +186,8 @@ export async function POST(request: NextRequest) {
 
         // Looks for the ingredient in the shopping list. If it already exists, it just updates the checked status to false. 
         // If it doesn't exist, it creates a new item in the list with checked status false.
+
+        // The update needs to get the quantity field from the item being added.
         await prisma.shoppingListItem.upsert({
             where: {
                 shoppingListId_ingredientId: {
