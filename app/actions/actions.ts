@@ -21,8 +21,9 @@ type RecipeFromDb = {
     tags?: { id: number; name: string }[]
     lastMade?: Date | null
     timesIncluded?: number
-    ingredients?: { ingredient: { id: string; name: string } }[]
+    ingredients?: { ingredient: { id: string; name: string }; quantity: number | null; unit: string | null }[]
 }
+
 type mealPlan = {
     breakfast?: RecipeFromDb | null,
     lunch?: RecipeFromDb | null,
@@ -276,27 +277,49 @@ export async function createSchedule(formData: custom) {
         }
     })
 
-    // Create shopping list from all ingredients actually used in the weekly plan
-    const ingredientIds = new Set<string>();
+    // Create shopping list from all ingredients actually used in the weekly plan.
+    const ingredientObj = new Map<string, {name: string; quantity: number | null; unit: string | null}>(); // Ingredients map to an object; we sum their quantities where suitable.
+
     weeklyPlan.forEach((dayPlan) => {
         const meals = [dayPlan.meals.breakfast, dayPlan.meals.lunch, dayPlan.meals.dinner].filter(
             Boolean,
         ) as RecipeFromDb[];
 
+        // Filters out null values.
         meals.forEach((recipe) => {
             recipe.ingredients?.forEach((recipeIngredient) => {
-                ingredientIds.add(recipeIngredient.ingredient.id);
+                if (ingredientObj.has(recipeIngredient.ingredient.name)){
+                    const existing = ingredientObj.get(recipeIngredient.ingredient.name)!
+
+                    if (existing.quantity != null && recipeIngredient.quantity != null) {
+                        existing.quantity = existing.quantity + recipeIngredient.quantity;
+                        }   
+                        
+                } else {
+                ingredientObj.set(recipeIngredient.ingredient.name, {
+                    name: recipeIngredient.ingredient.name,
+                    quantity: recipeIngredient.quantity,
+                    unit: recipeIngredient.unit
+                 });
+                };
             });
         });
     });
 
+    // Each object must also be linked to it's main ingredient.
     await prisma.shoppingList.create({
         data: {
             userId: sessionId || null,
             items: {
-                create: Array.from(ingredientIds).map((ingredientId) => ({
-                    ingredientId
-                }))
+                create: Array.from(ingredientObj.values()).map(({name, quantity, unit}) => ({
+                    ingredient: {
+                        connect: { name }
+                    },
+                    quantity,
+                    unit
+                })
+
+                )
             }
         }
     });
